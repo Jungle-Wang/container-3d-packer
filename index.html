@@ -1536,7 +1536,7 @@ function quickAddAndLoad() {
   }
 }
 
-// 为箱子寻找最佳放置位置（支持堆叠）
+// 为箱子寻找最佳放置位置（物理堆叠：必须落地或落在其他箱子上）
 function findBestPosition(box) {
   const c = CONTAINERS[containerIdx];
   const halfW = c.iW / 2 / SCALE;
@@ -1553,73 +1553,122 @@ function findBestPosition(box) {
   const maxCol = Math.floor((c.iW - box.w) / Math.max(box.w, 50)) + 1;
   const maxRow = Math.floor((c.iL - box.l) / Math.max(box.l, 50)) + 1;
   
-  // 收集所有可能的Y高度（底层 + 每个已放置箱子的顶部）
-  const yLevels = new Set();
-  yLevels.add(boxHalfH); // 底层
-  
-  for (const b of placedBoxes) {
-    const topY = b.mesh.position.y + (b.h / SCALE) / 2 + boxHalfH;
-    if (topY + boxHalfH <= H) { // 不超过集装箱高度
-      yLevels.add(topY);
-    }
-  }
-  
-  // 按Y高度从低到高排序（优先放在底层，再逐层向上）
-  const sortedYLevels = Array.from(yLevels).sort((a, b) => a - b);
-  
-  // 对每个Y高度，搜索XZ平面
-  for (const tryY of sortedYLevels) {
-    // 粗搜索
-    for (let row = 0; row < maxRow; row++) {
-      for (let col = 0; col < maxCol; col++) {
-        const tryX = -halfW + boxHalfX + col * stepX;
-        const tryZ = -halfL + boxHalfZ + row * stepZ;
-        
-        if (tryX + boxHalfX > halfW || tryZ + boxHalfZ > halfL) continue;
-        if (tryY + boxHalfH > H) continue; // 超出集装箱高度
-        
-        const testBox = {
-          id: -1, l: box.l, w: box.w, h: box.h, wt: box.wt, color: box.color,
-          x: tryX * SCALE, z: tryZ * SCALE, y: tryY * SCALE,
-          mesh: createBoxMesh({ l: box.l, w: box.w, h: box.h, wt: box.wt, color: box.color })
-        };
-        testBox.mesh.position.set(tryX, tryY, tryZ);
-        
-        const hasCollision = checkBoxCollision(testBox);
-        scene.remove(testBox.mesh);
-        
-        if (!hasCollision) {
-          return { x: tryX * SCALE, z: tryZ * SCALE, y: tryY * SCALE };
-        }
+  // 粗搜索：从后左角开始，逐行逐列
+  for (let row = 0; row < maxRow; row++) {
+    for (let col = 0; col < maxCol; col++) {
+      const tryX = -halfW + boxHalfX + col * stepX;
+      const tryZ = -halfL + boxHalfZ + row * stepZ;
+      
+      if (tryX + boxHalfX > halfW || tryZ + boxHalfZ > halfL) continue;
+      
+      // 计算该XZ位置能放的最低Y（物理堆叠）
+      const bestY = findLowestValidY(box, tryX, tryZ, H, boxHalfH);
+      
+      if (bestY !== null) {
+        return { x: tryX * SCALE, z: tryZ * SCALE, y: bestY * SCALE };
       }
     }
   }
   
-  // 精细搜索（在所有Y层）
+  // 精细搜索
   const fineStep = 50 / SCALE;
-  for (const tryY of sortedYLevels) {
-    for (let x = -halfW + boxHalfX; x <= halfW - boxHalfX; x += fineStep) {
-      for (let z = -halfL + boxHalfZ; z <= halfL - boxHalfZ; z += fineStep) {
-        if (tryY + boxHalfH > H) continue;
-        
-        const testBox = {
-          id: -1, l: box.l, w: box.w, h: box.h, wt: box.wt, color: box.color,
-          x: x * SCALE, z: z * SCALE, y: tryY * SCALE,
-          mesh: createBoxMesh({ l: box.l, w: box.w, h: box.h, wt: box.wt, color: box.color })
-        };
-        testBox.mesh.position.set(x, tryY, z);
-        
-        const hasCollision = checkBoxCollision(testBox);
-        scene.remove(testBox.mesh);
-        
-        if (!hasCollision) {
-          return { x: x * SCALE, z: z * SCALE, y: tryY * SCALE };
-        }
+  for (let x = -halfW + boxHalfX; x <= halfW - boxHalfX; x += fineStep) {
+    for (let z = -halfL + boxHalfZ; z <= halfL - boxHalfZ; z += fineStep) {
+      const bestY = findLowestValidY(box, x, z, H, boxHalfH);
+      
+      if (bestY !== null) {
+        return { x: x * SCALE, z: z * SCALE, y: bestY * SCALE };
       }
     }
   }
   
   return null;
+}
+
+// 计算给定XZ位置能放置箱子的最低Y高度（物理堆叠）
+function findLowestValidY(box, x, z, containerH, boxHalfH) {
+  const boxW = box.w / SCALE;
+  const boxL = box.l / SCALE;
+  const boxH = box.h / SCALE;
+  
+  // 候选Y高度：地面(0) + 每个箱子的顶部
+  const candidateY = new Set();
+  candidateY.add(boxHalfH); // 地面高度（箱子中心）
+  
+  for (const b of placedBoxes) {
+    const bTop = b.mesh.position.y + (b.h / SCALE) / 2;
+    const newY = bTop + boxHalfH; // 箱子放在b上面的中心高度
+    if (newY + boxHalfH <= containerH) {
+      candidateY.add(newY);
+    }
+  }
+  
+  // 按从低到高排序
+  const sortedY = Array.from(candidateY).sort((a, b) => a - b);
+  
+  // 对每个候选Y，检查是否可以放置
+  for (const tryY of sortedY) {
+    if (tryY + boxHalfH > containerH) continue;
+    
+    // 检查该位置是否有碰撞
+    const testBox = {
+      id: -1, l: box.l, w: box.w, h: box.h, wt: box.wt, color: box.color,
+      x: x * SCALE, z: z * SCALE, y: tryY * SCALE,
+      mesh: createBoxMesh({ l: box.l, w: box.w, h: box.h, wt: box.wt, color: box.color })
+    };
+    testBox.mesh.position.set(x, tryY, z);
+    
+    const hasCollision = checkBoxCollision(testBox);
+    scene.remove(testBox.mesh);
+    
+    if (!hasCollision) {
+      // 找到了！但还要验证物理支撑：
+      // 如果不在地面，必须有箱子在下面支撑
+      if (tryY <= boxHalfH + 0.001) {
+        // 在地面上，OK
+        return tryY;
+      }
+      
+      // 检查是否有足够的支撑面积
+      if (hasPhysicalSupport(box, x, z, tryY)) {
+        return tryY;
+      }
+    }
+  }
+  
+  return null;
+}
+
+// 检查箱子在指定位置是否有物理支撑（至少部分落在其他箱子上）
+function hasPhysicalSupport(box, x, z, y) {
+  const boxHalfW = (box.w / SCALE) / 2;
+  const boxHalfL = (box.l / SCALE) / 2;
+  const boxBottom = y - (box.h / SCALE) / 2;
+  
+  // 检查是否有箱子在正下方（接触或非常接近）
+  for (const b of placedBoxes) {
+    const bTop = b.mesh.position.y + (b.h / SCALE) / 2;
+    
+    // 如果不在同一高度层，跳过
+    if (Math.abs(bTop - boxBottom) > 0.01) continue;
+    
+    // 检查XZ投影是否有重叠
+    const bHalfW = (b.w / SCALE) / 2;
+    const bHalfL = (b.l / SCALE) / 2;
+    const bx = b.mesh.position.x;
+    const bz = b.mesh.position.z;
+    
+    // X方向重叠
+    const xOverlap = (x - boxHalfW < bx + bHalfW) && (x + boxHalfW > bx - bHalfW);
+    // Z方向重叠
+    const zOverlap = (z - boxHalfL < bz + bHalfL) && (z + boxHalfL > bz - bHalfL);
+    
+    if (xOverlap && zOverlap) {
+      return true; // 有支撑
+    }
+  }
+  
+  return false;
 }
 
 function placeBox(box, pendingIdx) {
