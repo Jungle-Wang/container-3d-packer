@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>集装箱3D装载游戏 | Container 3D Packer v16-minimal</title>
+<style>
+  :root { --bg: #0a0e14; --panel: #111620; --text: #e8eef5; --accent: #f0b429; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg); color: var(--text); font-family: sans-serif; height: 100vh; display: flex; flex-direction: column; }
+  header { background: var(--panel); padding: 10px; border-bottom: 2px solid var(--accent); }
+  .logo { font-family: 'Courier New', monospace; font-size: 14px; font-weight: 700; color: var(--accent); }
+  .main { display: flex; flex: 1; }
+  .left { width: 200px; background: var(--panel); padding: 10px; border-right: 1px solid #333; }
+  .center { flex: 1; position: relative; }
+  #viewer { width: 100%; height: 100%; background: #1a2030; }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">📦 CONTAINER 3D PACKER v16-minimal</div>
+</header>
+<div class="main">
+  <div class="left">
+    <div id="ctype-list">Loading...</div>
+  </div>
+  <div class="center">
+    <div id="viewer"></div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+alert('SCRIPT START - minimal');
+
+const CONTAINERS = [
+  { id: '20gp', name: "20尺标准柜", short: "20' GP", iL: 5898, iW: 2352, iH: 2393, maxWt: 28200 },
+  { id: '40gp', name: "40尺标准柜", short: "40' GP", iL: 12032, iW: 2352, iH: 2393, maxWt: 26600 },
+  { id: '40hc', name: "40尺高柜",   short: "40' HC",  iL: 12032, iW: 2352, iH: 2698, maxWt: 26600 },
+];
+
+function renderCtypeList() {
+  const el = document.getElementById('ctype-list');
+  el.innerHTML = CONTAINERS.map(c => `<div>${c.short}</div>`).join('');
+}
+
+function initThree() {
+  const viewer = document.getElementById('viewer');
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x1a2030);
+  
+  const camera = new THREE.PerspectiveCamera(45, viewer.clientWidth / viewer.clientHeight, 1, 10000);
+  camera.position.set(0, 800, 1800);
+  
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setSize(viewer.clientWidth, viewer.clientHeight);
+  viewer.appendChild(renderer.domElement);
+  
+  const controls = new THREE.OrbitControls(camera, renderer.domElement);
+  
+  // Add a simple cube
+  const geometry = new THREE.BoxGeometry(100, 100, 100);
+  const material = new THREE.MeshBasicMaterial({ color: 0xf0b429 });
+  const cube = new THREE.Mesh(geometry, material);
+  scene.add(cube);
+  
+  function animate() {
+    requestAnimationFrame(animate);
+    cube.rotation.x += 0.01;
+    cube.rotation.y += 0.01;
+    controls.update();
+    renderer.render(scene, camera);
+  }
+  animate();
+  
+  alert('Three.js initialized!');
+}
+
+function init() {
+  alert('INIT START');
+  renderCtypeList();
+  initThree();
+  alert('INIT DONE');
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}
+</script>
+</body>
+</html>
