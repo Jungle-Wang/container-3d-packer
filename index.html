@@ -2156,7 +2156,6 @@ function updateTooltip(e, box) {
   const fillPct = (topY / maxTop * 100).toFixed(0);
 
   // 坐标显示：以集装箱后门（最里面）为原点 (0,0)
-  const c = CONTAINERS[containerIdx];
   const displayX = box.x; // X不变，中心为0
   const displayZ = -box.z + c.iL / 2; // Z反转，后门为0
   tt.innerHTML = `#${box.id} | ${box.l}×${box.w}×${box.h}mm<br>` +
