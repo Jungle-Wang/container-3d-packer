@@ -1632,8 +1632,6 @@ function findBestPosition(box) {
   // 3. 地面层填满后，再在同一X位置往上堆叠（Y+1）
   // 4. 这样实现：地面从左到右排满，然后再堆第二层
 
-  const maxLayer = Math.floor(c.iH / box.h);
-
   // Z固定在最里面（row = 0）
   const tryZ = -halfL + boxHalfZ;
 
