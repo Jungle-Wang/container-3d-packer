@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Minimal Test</title>
+<style>
+body { margin: 0; background: #f0f4f8; }
+#viewer { width: 100vw; height: 100vh; }
+#error { color: red; padding: 20px; }
+</style>
+</head>
+<body>
+<div id="error"></div>
+<div id="viewer"></div>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script>
+try {
+  console.log('START');
+  const viewer = document.getElementById('viewer');
+  
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(45, viewer.clientWidth/viewer.clientHeight, 0.1, 2000);
+  camera.position.set(20, 20, 30);
+  
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setSize(viewer.clientWidth, viewer.clientHeight);
+  viewer.appendChild(renderer.domElement);
+  
+  // Container
+  const geometry = new THREE.BoxGeometry(12, 2.5, 12);
+  const material = new THREE.MeshStandardMaterial({ 
+    color: 0x111111, 
+    transparent: true, 
+    opacity: 0.3,
+    side: THREE.DoubleSide
+  });
+  const container = new THREE.Mesh(geometry, material);
+  container.position.y = 1.25;
+  scene.add(container);
+  
+  // Edges
+  const edges = new THREE.EdgesGeometry(geometry);
+  const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x000000 }));
+  line.position.y = 1.25;
+  scene.add(line);
+  
+  // Light
+  scene.add(new THREE.AmbientLight(0xffffff, 1));
+  const sun = new THREE.DirectionalLight(0xffffff, 1);
+  sun.position.set(10, 20, 10);
+  scene.add(sun);
+  
+  // Ground
+  const ground = new THREE.Mesh(
+    new THREE.PlaneGeometry(100, 100),
+    new THREE.MeshStandardMaterial({ color: 0xf0f4f8 })
+  );
+  ground.rotation.x = -Math.PI/2;
+  scene.add(ground);
+  
+  function animate() {
+    requestAnimationFrame(animate);
+    renderer.render(scene, camera);
+  }
+  animate();
+  
+  document.getElementById('error').textContent = 'SUCCESS: Container should be visible!';
+  document.getElementById('error').style.color = 'green';
+  console.log('OK');
+} catch(e) {
+  console.error('ERROR:', e);
+  document.getElementById('error').textContent = 'ERROR: ' + e.message;
+}
+</script>
+</body>
+</html>
