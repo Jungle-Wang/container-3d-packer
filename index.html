@@ -670,12 +670,18 @@ function onMouseMove(e) {
       const cH = CONTAINERS[containerIdx].iH / SCALE;
       const clampedY = Math.max(bHalfH, Math.min(cH - bHalfH, newY));
       
-      const oldY = dragBox.mesh.position.y;
-      dragBox.mesh.position.y = clampedY;
+      // Create a test box to check collision without modifying the actual box
+      const testBox = {
+        id: dragBox.id,
+        l: dragBox.l, w: dragBox.w, h: dragBox.h, wt: dragBox.wt, color: dragBox.color,
+        x: dragBox.x,
+        z: dragBox.z,
+        y: dragBox.y,
+        mesh: { position: { x: dragBox.mesh.position.x, y: clampedY, z: dragBox.mesh.position.z } }
+      };
       
-      if (checkBoxCollision(dragBox)) {
-        dragBox.mesh.position.y = oldY;
-      } else {
+      if (!checkBoxCollision(testBox)) {
+        dragBox.mesh.position.y = clampedY;
         updateBoxPosition(dragBox);
         updateAllStats();
         updateXYZPanel(dragBox);
@@ -696,18 +702,26 @@ function onMouseMove(e) {
       newX = Math.max(-halfW + boxHalfX, Math.min(halfW - boxHalfX, newX));
       newZ = Math.max(-halfL + boxHalfZ, Math.min(halfL - boxHalfZ, newZ));
 
-      const oldX = dragBox.mesh.position.x, oldZ = dragBox.mesh.position.z;
+      const oldX = dragBox.mesh.position.x;
+      const oldZ = dragBox.mesh.position.z;
       
-      // Test new position first
-      dragBox.mesh.position.x = newX;
-      dragBox.mesh.position.z = newZ;
+      // Create a test box to check collision without modifying the actual box
+      const testBox = {
+        id: dragBox.id,
+        l: dragBox.l, w: dragBox.w, h: dragBox.h, wt: dragBox.wt, color: dragBox.color,
+        x: newX * SCALE,
+        z: newZ * SCALE,
+        y: dragBox.y,
+        mesh: { position: { x: newX, y: dragBox.mesh.position.y, z: newZ } }
+      };
       
-      if (checkBoxCollision(dragBox)) {
-        // Collision detected - revert to old position
-        dragBox.mesh.position.x = oldX;
-        dragBox.mesh.position.z = oldZ;
+      if (checkBoxCollision(testBox)) {
+        // Collision detected - do not move
+        // Keep old position
       } else {
-        // No collision - update position data
+        // No collision - move to new position
+        dragBox.mesh.position.x = newX;
+        dragBox.mesh.position.z = newZ;
         updateBoxPosition(dragBox);
         updateAllStats();
         updateXYZPanel(dragBox);
@@ -1521,7 +1535,7 @@ function renderPendingList() {
       <div class="pi-color" style="background:${box.color.hex}"></div>
       <div class="pi-info">
         <strong>${box.l}×${box.w}×${box.h}</strong>
-        ${box.wt}kg | ${((box.l*box.w*box.h)/1e6).toFixed(2)}L
+        ${box.wt}kg | ${((box.l*box.w*box.h)/1e9).toFixed(3)}m³
       </div>
       <button class="pi-del" onclick="event.stopPropagation();removePending(${idx})">×</button>
     </div>
@@ -1649,7 +1663,7 @@ function updateAllStats() {
   document.getElementById('h-total').textContent = placedBoxes.length + pendingBoxes.length;
   document.getElementById('h-placed').textContent = placedBoxes.length;
   document.getElementById('h-weight').innerHTML = `${totalWt.toFixed(0)}<span style="font-size:10px">kg</span>`;
-  document.getElementById('h-volume').innerHTML = `${(totalVol/1e6).toFixed(2)}<span style="font-size:7px">m³</span>`;
+  document.getElementById('h-volume').innerHTML = `${(totalVol/1e9).toFixed(2)}<span style="font-size:7px">m³</span>`;
   document.getElementById('h-usage').innerHTML = `${(placedVol / cVol * 100).toFixed(0)}<span style="font-size:10px">%</span>`;
   document.getElementById('h-contWt').innerHTML = `${placedWt.toFixed(0)}<span style="font-size:10px">kg</span>`;
   document.getElementById('h-maxZ').innerHTML = `${maxZ.toFixed(0)}<span style="font-size:10px">mm</span>`;
@@ -1664,16 +1678,16 @@ function updateAllStats() {
   wbarEl.style.width = wpct + '%';
   wbarEl.classList.toggle('warn', placedWt > c.maxWt * 0.9);
 
-  document.getElementById('s-vrem').textContent = ((cVol - placedVol) / 1e6).toFixed(2) + ' m³';
+  document.getElementById('s-vrem').textContent = ((cVol - placedVol) / 1e9).toFixed(2) + ' m³';
   document.getElementById('s-wrem').textContent = Math.max(0, c.maxWt - placedWt).toFixed(0) + ' kg';
 
   document.getElementById('s-pcount').textContent = placedBoxes.length;
-  document.getElementById('s-pvol').textContent = (placedVol / 1e6).toFixed(3) + ' m³';
+  document.getElementById('s-pvol').textContent = (placedVol / 1e9).toFixed(3) + ' m³';
   document.getElementById('s-pwt').textContent = placedWt.toFixed(1) + ' kg';
   document.getElementById('s-maxz').textContent = maxZ.toFixed(0) + ' mm';
 
   document.getElementById('s-allcount').textContent = (placedBoxes.length + pendingBoxes.length) + ' 个';
-  document.getElementById('s-allvol').textContent = (totalVol / 1e6).toFixed(3) + ' m³';
+  document.getElementById('s-allvol').textContent = (totalVol / 1e9).toFixed(3) + ' m³';
   document.getElementById('s-allwt').textContent = totalWt.toFixed(1) + ' kg';
   document.getElementById('s-unloaded').textContent = pendingBoxes.length;
 
@@ -1740,7 +1754,7 @@ function renderStackLayers() {
         <div class="layer-fill" style="width:${pct}%;background:${layerColor}"></div>
       </div>
       <div class="layer-count">${layer.count}箱</div>
-      <div class="layer-vol">${(layer.vol/1e6).toFixed(2)}m³</div>
+      <div class="layer-vol">${(layer.vol/1e9).toFixed(2)}m³</div>
     </div>`;
   }).join('');
 }
@@ -1768,7 +1782,7 @@ function renderColorBreakdown() {
       <div class="cg-swatch" style="background:${k}"></div>
       <div class="cg-info">
         <strong>${colorNames[k] || s.name}</strong><br>
-        ${s.count}个 | ${(s.vol/1e6).toFixed(3)}m³ | ${s.wt.toFixed(1)}kg
+        ${s.count}个 | ${(s.vol/1e9).toFixed(3)}m³ | ${s.wt.toFixed(1)}kg
       </div>
     </div>`;
   }).join('');
@@ -1788,7 +1802,7 @@ function updateTooltip(e, box) {
 
   tt.innerHTML = `#${box.id} | ${box.l}×${box.w}×${box.h}mm<br>` +
     `重量: ${box.wt}kg | 颜色: ${box.color.name}<br>` +
-    `${(box.l*box.w*box.h/1e6).toFixed(3)}m³ | 位置:(${box.x.toFixed(0)},${box.z.toFixed(0)})mm`;
+    `${(box.l*box.w*box.h/1e9).toFixed(3)}m³ | 位置:(${box.x.toFixed(0)},${box.z.toFixed(0)})mm`;
 
   if (e) {
     tt.style.left = (e.clientX + 12) + 'px';
@@ -1857,7 +1871,7 @@ function exportData() {
   const placedWt = placedBoxes.reduce((s, b) => s + b.wt, 0);
   let text = `=== 集装箱3D装箱报告 ===\n`;
   text += `集装箱: ${c.name}\n内尺寸: ${c.iL}×${c.iW}×${c.iH}mm\n最大载重: ${c.maxWt}kg\n`;
-  text += `已装载: ${placedBoxes.length}箱\n装载体积: ${(placedVol/1e6).toFixed(3)}m³\n`;
+  text += `已装载: ${placedBoxes.length}箱\n装载体积: ${(placedVol/1e9).toFixed(3)}m³\n`;
   text += `装载重量: ${placedWt.toFixed(1)}kg\n利用率: ${(placedVol/(c.iL*c.iW*c.iH)*100).toFixed(1)}%\n\n`;
   text += `明细:\n`;
   placedBoxes.forEach((b, i) => {
