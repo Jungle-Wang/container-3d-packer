@@ -673,7 +673,17 @@ function onMouseDown(e) {
 
   if (hits.length > 0) {
     const hitMesh = hits[0].object;
-    const box = placedBoxes.find(b => b.mesh === hitMesh || b.mesh.children.includes(hitMesh));
+    // 递归查找 hitMesh 属于哪个 box 的 mesh group
+    function findParentBox(mesh) {
+      if (!mesh) return null;
+      for (const b of placedBoxes) {
+        if (b.mesh === mesh) return b;
+      }
+      // 向上查找父级
+      if (mesh.parent) return findParentBox(mesh.parent);
+      return null;
+    }
+    const box = findParentBox(hitMesh);
     if (box) {
       e.stopPropagation();
       controls.enabled = false;
@@ -715,9 +725,16 @@ function onMouseMove(e) {
   if (!isDraggingBox) {
     const boxMeshes = placedBoxes.map(b => b.mesh);
     const hits = raycaster.intersectObjects(boxMeshes, true);
-    const newHover = hits.length > 0
-      ? placedBoxes.find(b => b.mesh === hits[0].object || b.mesh.children.includes(hits[0].object))
-      : null;
+    // 递归查找 hitMesh 属于哪个 box
+    function findHoverBox(mesh) {
+      if (!mesh) return null;
+      for (const b of placedBoxes) {
+        if (b.mesh === mesh) return b;
+      }
+      if (mesh.parent) return findHoverBox(mesh.parent);
+      return null;
+    }
+    const newHover = hits.length > 0 ? findHoverBox(hits[0].object) : null;
 
     if (newHover !== hoveredBox) {
       if (hoveredBox && hoveredBox !== selectedBox) unhighlightBox(hoveredBox);
@@ -822,7 +839,16 @@ function onTouchStart(e) {
   
   if (hits.length > 0) {
     const hitMesh = hits[0].object;
-    const box = placedBoxes.find(b => b.mesh === hitMesh || b.mesh.children.includes(hitMesh));
+    // 递归查找 hitMesh 属于哪个 box
+    function findTouchBox(mesh) {
+      if (!mesh) return null;
+      for (const b of placedBoxes) {
+        if (b.mesh === mesh) return b;
+      }
+      if (mesh.parent) return findTouchBox(mesh.parent);
+      return null;
+    }
+    const box = findTouchBox(hitMesh);
     if (box) {
       controls.enabled = false;
       touchDragBox = box;
@@ -919,7 +945,16 @@ function onWheel(e) {
 
   if (hits.length > 0) {
     const hitMesh = hits[0].object;
-    const box = placedBoxes.find(b => b.mesh === hitMesh || b.mesh.children.includes(hitMesh));
+    // 递归查找 hitMesh 属于哪个 box
+    function findWheelBox(mesh) {
+      if (!mesh) return null;
+      for (const b of placedBoxes) {
+        if (b.mesh === mesh) return b;
+      }
+      if (mesh.parent) return findWheelBox(mesh.parent);
+      return null;
+    }
+    const box = findWheelBox(hitMesh);
     if (box) {
       // Scroll changes height
       const delta = e.deltaY > 0 ? -20 : 20;
@@ -948,7 +983,16 @@ function onViewerDblClick(e) {
 
   if (hits.length > 0) {
     const hitMesh = hits[0].object;
-    const box = placedBoxes.find(b => b.mesh === hitMesh || b.mesh.children.includes(hitMesh));
+    // 递归查找 hitMesh 属于哪个 box
+    function findDblClickBox(mesh) {
+      if (!mesh) return null;
+      for (const b of placedBoxes) {
+        if (b.mesh === mesh) return b;
+      }
+      if (mesh.parent) return findDblClickBox(mesh.parent);
+      return null;
+    }
+    const box = findDblClickBox(hitMesh);
     if (box) {
       if (confirm(`移除箱体 #${box.id} (${box.l}×${box.w}×${box.h}mm)?`)) {
         removeBox(box.id);
