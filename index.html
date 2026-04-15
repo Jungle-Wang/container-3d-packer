@@ -342,7 +342,9 @@
   <div class="cam-hint">
     <span class="key-hint">左键拖</span> 移动箱子 &nbsp;|&nbsp;
     <span class="key-hint">右键拖</span> 旋转视角 &nbsp;|&nbsp;
-    <span class="key-hint">滚轮</span> 缩放
+    <span class="key-hint">滚轮</span> 缩放 &nbsp;|&nbsp;
+    <span class="key-hint">1</span> 正门视角 &nbsp;|&nbsp;
+    <span class="key-hint">2</span> 侧面视角
   </div>
   <div class="xyz-panel" id="xyz-panel">
     <div class="xyz-group">
@@ -598,6 +600,45 @@ function onKeyDown(e) {
     }
   }
   if (e.key === 'Escape') { deselectBox(); }
+  
+  // Camera view shortcuts: 1 = front (door), 2 = side
+  if (e.key === '1') {
+    e.preventDefault();
+    setCameraView('front');
+    showToast('视角: 集装箱门 (正面)', 'info');
+    return;
+  }
+  if (e.key === '2') {
+    e.preventDefault();
+    setCameraView('side');
+    showToast('视角: 集装箱侧面', 'info');
+    return;
+  }
+}
+
+function setCameraView(view) {
+  const c = CONTAINERS[containerIdx];
+  const L = c.iL / SCALE; // length (Z)
+  const W = c.iW / SCALE; // width (X)
+  const H = c.iH / SCALE; // height (Y)
+  
+  // Target: center of container
+  const target = new THREE.Vector3(0, H/3, 0);
+  
+  if (view === 'front') {
+    // Front view: look at the door (positive Z)
+    // Position: slightly above and in front of the door
+    const distance = Math.max(L, W, H) * 0.8;
+    camera.position.set(0, H/2, L/2 + distance);
+  } else if (view === 'side') {
+    // Side view: look at the right side (positive X)
+    const distance = Math.max(L, W, H) * 0.8;
+    camera.position.set(W/2 + distance, H/2, 0);
+  }
+  
+  camera.lookAt(target);
+  controls.target.copy(target);
+  controls.update();
 }
 
 function onKeyUp(e) {
