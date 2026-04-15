@@ -1537,7 +1537,7 @@ function quickAddAndLoad() {
   }
 }
 
-// 为箱子寻找最佳放置位置（列优先->行优先->层优先）
+// 为箱子寻找最佳放置位置（列优先->行优先->层优先，优先堆满当前位置）
 function findBestPosition(box) {
   const c = CONTAINERS[containerIdx];
   const halfW = c.iW / 2 / SCALE;
@@ -1558,7 +1558,8 @@ function findBestPosition(box) {
   const maxLayer = Math.floor(c.iH / box.h);
   
   // ===== 列优先 -> 行优先 -> 层优先 =====
-  // 装箱顺序：第1列的第1行（第1层→第2层→...）-> 第1列的第2行 -> ... -> 第2列的第1行...
+  // 装箱顺序：第1列的第1行（堆满所有层）-> 第1列的第2行（堆满所有层）-> ... -> 第2列的第1行...
+  // 策略：在每个位置找"可以放置的最高层"，优先堆叠而不是平铺
   
   for (let col = 0; col < maxCol; col++) {
     for (let row = 0; row < maxRow; row++) {
@@ -1567,8 +1568,11 @@ function findBestPosition(box) {
       
       if (tryX + boxHalfX > halfW || tryZ + boxHalfZ > halfL) continue;
       
-      // 在这个XZ位置，从地面开始逐层向上找空位
-      for (let layer = 0; layer < maxLayer; layer++) {
+      // 在这个XZ位置，从最高层向下找"可以放置的最高位置"
+      // 这样新箱子会优先堆叠在已有箱子上方，而不是平铺
+      let bestY = null;
+      
+      for (let layer = maxLayer - 1; layer >= 0; layer--) {
         const tryY = boxHalfH + layer * (box.h / SCALE);
         
         if (tryY + boxHalfH > H) continue;
@@ -1587,9 +1591,15 @@ function findBestPosition(box) {
         if (!hasCollision) {
           // 地面层（layer=0）不需要支撑，上层需要检查支撑
           if (layer === 0 || hasPhysicalSupport(box, tryX, tryZ, tryY)) {
-            return { x: tryX * SCALE, z: tryZ * SCALE, y: tryY * SCALE };
+            bestY = tryY;
+            // 继续向上找更高的位置
           }
         }
+      }
+      
+      // 找到这个XZ位置可以放置的最高层
+      if (bestY !== null) {
+        return { x: tryX * SCALE, z: tryZ * SCALE, y: bestY * SCALE };
       }
     }
   }
@@ -1598,7 +1608,9 @@ function findBestPosition(box) {
   const fineStep = 50 / SCALE;
   for (let x = -halfW + boxHalfX; x <= halfW - boxHalfX; x += fineStep) {
     for (let z = -halfL + boxHalfZ; z <= halfL - boxHalfZ; z += fineStep) {
-      for (let layer = 0; layer < maxLayer; layer++) {
+      let bestY = null;
+      
+      for (let layer = maxLayer - 1; layer >= 0; layer--) {
         const tryY = boxHalfH + layer * (box.h / SCALE);
         
         if (tryY + boxHalfH > H) continue;
@@ -1615,9 +1627,13 @@ function findBestPosition(box) {
         
         if (!hasCollision) {
           if (layer === 0 || hasPhysicalSupport(box, x, z, tryY)) {
-            return { x: x * SCALE, z: z * SCALE, y: tryY * SCALE };
+            bestY = tryY;
           }
         }
+      }
+      
+      if (bestY !== null) {
+        return { x: x * SCALE, z: z * SCALE, y: bestY * SCALE };
       }
     }
   }
