@@ -1631,56 +1631,68 @@ function findBestPosition(box) {
   // 2. X从左到右排满这一排
   // 3. X排满后，Y往上堆，X再从左到右排满
   // 4. 这一排（Z固定）装满后，Z往外走（往前门方向），开始第二排
+  //
+  // 关键：对于每个(Z,X)位置，必须从Y=0开始往上找，找到第一个能放的高度
+  // 不能跳过被占的位置去后面找！
 
-  // 如果队列未初始化或箱子尺寸变化，重新初始化
-  if (!packingQueueInitialized || packingQueue.length === 0) {
-    initPackingQueue(box);
-  }
+  const maxLayer = Math.floor(c.iH / box.h);
 
-  // 按顺序遍历位置队列，找到第一个能放的位置
-  for (let i = 0; i < packingQueue.length; i++) {
-    const pos = packingQueue[i];
-    const tryX = pos.x / SCALE;
-    const tryY = pos.y / SCALE;
-    const tryZ = pos.z / SCALE;
+  // Z方向：从里到外（row 0 -> maxRow）
+  for (let row = 0; row < maxRow; row++) {
+    const tryZ = -halfL + boxHalfZ + row * stepZ;
+    if (tryZ + boxHalfZ > halfL) continue;
 
-    // 检查该位置是否可以放置
-    let hasCollision = false;
-    for (const b of placedBoxes) {
-      if (boxesOverlapAt(box, tryX, tryY, tryZ, b)) {
-        hasCollision = true;
-        break;
-      }
-    }
+    // X方向：从左到右（col 0 -> maxCol）
+    for (let col = 0; col < maxCol; col++) {
+      const tryX = -halfW + boxHalfX + col * stepX;
+      if (tryX + boxHalfX > halfW) continue;
 
-    if (!hasCollision) {
-      // 地面层（layer=0）不需要支撑检查
-      // 上层需要检查是否有物理支撑
-      if (pos.layer === 0 || hasPhysicalSupportFast(box, tryX, tryZ, tryY)) {
-        return { x: pos.x, y: pos.y, z: pos.z };
-      }
-    }
-  }
-
-  // 如果队列中没有找到位置，尝试粗搜索（更精细的步长）
-  const fineStep = 50 / SCALE;
-  for (let z = -halfL + boxHalfZ; z <= halfL - boxHalfZ; z += fineStep) {
-    for (let x = -halfW + boxHalfX; x <= halfW - boxHalfX; x += fineStep) {
+      // Y方向：从下而上（layer 0 -> maxLayer）
+      // 对于每个(Z,X)，必须从地面开始往上找第一个能放的位置
       for (let layer = 0; layer < maxLayer; layer++) {
-        const targetY = layer * box.h / SCALE + boxHalfH;
-        if (targetY + boxHalfH > H) break;
+        const tryY = layer * box.h / SCALE + boxHalfH;
+        if (tryY + boxHalfH > H) break;
 
+        // 检查该位置是否可以放置
         let hasCollision = false;
         for (const b of placedBoxes) {
-          if (boxesOverlapAt(box, x, targetY, z, b)) {
+          if (boxesOverlapAt(box, tryX, tryY, tryZ, b)) {
             hasCollision = true;
             break;
           }
         }
 
         if (!hasCollision) {
-          if (layer === 0 || hasPhysicalSupportFast(box, x, z, targetY)) {
-            return { x: x * SCALE, z: z * SCALE, y: targetY * SCALE };
+          // 地面层不需要支撑检查，上层需要
+          if (layer === 0 || hasPhysicalSupportFast(box, tryX, tryZ, tryY)) {
+            return { x: tryX * SCALE, y: tryY * SCALE, z: tryZ * SCALE };
+          }
+        }
+        // 如果这一层被占了，继续往上找（layer++）
+        // 如果所有层都被占了，才换下一个X位置
+      }
+    }
+  }
+
+  // 如果网格搜索没找到，尝试精细搜索
+  const fineStep = 50 / SCALE;
+  for (let z = -halfL + boxHalfZ; z <= halfL - boxHalfZ; z += fineStep) {
+    for (let x = -halfW + boxHalfX; x <= halfW - boxHalfX; x += fineStep) {
+      for (let layer = 0; layer < maxLayer; layer++) {
+        const tryY = layer * box.h / SCALE + boxHalfH;
+        if (tryY + boxHalfH > H) break;
+
+        let hasCollision = false;
+        for (const b of placedBoxes) {
+          if (boxesOverlapAt(box, x, tryY, z, b)) {
+            hasCollision = true;
+            break;
+          }
+        }
+
+        if (!hasCollision) {
+          if (layer === 0 || hasPhysicalSupportFast(box, x, z, tryY)) {
+            return { x: x * SCALE, y: tryY * SCALE, z: z * SCALE };
           }
         }
       }
