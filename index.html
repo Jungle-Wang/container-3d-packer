@@ -1550,7 +1550,7 @@ function quickAddAndLoad() {
   }
 }
 
-// 为箱子寻找最佳放置位置（列优先->行优先->层优先，从地面往上堆）
+// 为箱子寻找最佳放置位置（实际装箱逻辑：从后门开始，先填满地面层，再往上堆叠）
 function findBestPosition(box) {
   const c = CONTAINERS[containerIdx];
   const halfW = c.iW / 2 / SCALE;
@@ -1567,103 +1567,68 @@ function findBestPosition(box) {
   const maxCol = Math.floor((c.iW - box.w) / Math.max(box.w, 50)) + 1;
   const maxRow = Math.floor((c.iL - box.l) / Math.max(box.l, 50)) + 1;
   
-  // 计算最大层数
+  // ===== 实际装箱逻辑：层优先 -> 行优先（从前到后） -> 列优先（从左到右） =====
+  // 策略：
+  // 1. 优先填满地面层（y=0），从后门（最里面，z最小）往前门方向排
+  // 2. 同一层内，从后门到前门（row 0 -> maxRow），从左到右（col 0 -> maxCol）
+  // 3. 地面层填满后，再往上堆第二层，同样从后门开始
+  
   const maxLayer = Math.floor(c.iH / box.h);
   
-  // ===== 列优先 -> 行优先 -> 层优先 =====
-  // 装箱顺序：第1列第1行（第1层→第2层→第3层...堆满）→ 第1列第2行 → ... → 第2列第1行...
-  // 策略：在每个XZ位置，从地面往上找"当前可以放的最高层"
-  
-  for (let col = 0; col < maxCol; col++) {
+  for (let layer = 0; layer < maxLayer; layer++) {
+    const targetY = layer * box.h / SCALE + boxHalfH;
+    if (targetY + boxHalfH > H) break;
+    
+    // 从后门（最里面，row=0）往前门方向（row增大）
     for (let row = 0; row < maxRow; row++) {
-      const tryX = -halfW + boxHalfX + col * stepX;
-      const tryZ = -halfL + boxHalfZ + row * stepZ;
-      
-      if (tryX + boxHalfX > halfW || tryZ + boxHalfZ > halfL) continue;
-      
-      // 在这个XZ位置，从地面往上找当前可以放的最高层
-      let currentTopY = 0; // 当前该位置的顶部高度（从地面开始）
-      
-      // 检查该XZ位置上已有的箱子，找到当前最高层
-      for (const b of placedBoxes) {
-        const bHalfW = (b.w / SCALE) / 2;
-        const bHalfL = (b.l / SCALE) / 2;
-        const bx = b.mesh.position.x;
-        const bz = b.mesh.position.z;
+      for (let col = 0; col < maxCol; col++) {
+        const tryX = -halfW + boxHalfX + col * stepX;
+        const tryZ = -halfL + boxHalfZ + row * stepZ;
         
-        // 检查XZ投影是否重叠
-        const xOverlap = (tryX - boxHalfX < bx + bHalfW) && (tryX + boxHalfX > bx - bHalfW);
-        const zOverlap = (tryZ - boxHalfZ < bz + bHalfL) && (tryZ + boxHalfZ > bz - bHalfL);
+        if (tryX + boxHalfX > halfW || tryZ + boxHalfZ > halfL) continue;
         
-        if (xOverlap && zOverlap) {
-          // 该位置有箱子，更新当前顶部高度
-          const bTop = b.mesh.position.y + (b.h / SCALE) / 2;
-          if (bTop > currentTopY) {
-            currentTopY = bTop;
-          }
-        }
-      }
-      
-      // 尝试放在当前顶部高度（即堆叠在已有箱子上方）
-      const tryY = currentTopY + boxHalfH;
-      
-      if (tryY + boxHalfH <= H) {
-        // 快速检查：用简化的碰撞检测
+        // 检查该位置在目标高度是否可以放置
+        // 需要满足：1) 无碰撞 2) 有支撑（地面层不需要，上层需要）
+        
         let hasCollision = false;
         for (const b of placedBoxes) {
-          if (boxesOverlapAt(box, tryX, tryY, tryZ, b)) {
+          if (boxesOverlapAt(box, tryX, targetY, tryZ, b)) {
             hasCollision = true;
             break;
           }
         }
         
         if (!hasCollision) {
-          // 地面层不需要支撑，上层需要检查
-          if (currentTopY === 0 || hasPhysicalSupportFast(box, tryX, tryZ, tryY)) {
-            return { x: tryX * SCALE, z: tryZ * SCALE, y: tryY * SCALE };
+          // 地面层（layer=0）不需要支撑检查
+          // 上层需要检查是否有物理支撑
+          if (layer === 0 || hasPhysicalSupportFast(box, tryX, tryZ, targetY)) {
+            return { x: tryX * SCALE, z: tryZ * SCALE, y: targetY * SCALE };
           }
         }
       }
     }
   }
   
-  // 粗搜索（更精细的步长）
+  // 粗搜索（更精细的步长）- 同样遵循层优先、从里到外、从左到右
   const fineStep = 50 / SCALE;
-  for (let x = -halfW + boxHalfX; x <= halfW - boxHalfX; x += fineStep) {
+  for (let layer = 0; layer < maxLayer; layer++) {
+    const targetY = layer * box.h / SCALE + boxHalfH;
+    if (targetY + boxHalfH > H) break;
+    
+    // 从后门往前门
     for (let z = -halfL + boxHalfZ; z <= halfL - boxHalfZ; z += fineStep) {
-      let currentTopY = 0;
-      
-      for (const b of placedBoxes) {
-        const bHalfW = (b.w / SCALE) / 2;
-        const bHalfL = (b.l / SCALE) / 2;
-        const bx = b.mesh.position.x;
-        const bz = b.mesh.position.z;
-        
-        const xOverlap = (x - boxHalfX < bx + bHalfW) && (x + boxHalfX > bx - bHalfW);
-        const zOverlap = (z - boxHalfZ < bz + bHalfL) && (z + boxHalfZ > bz - bHalfL);
-        
-        if (xOverlap && zOverlap) {
-          const bTop = b.mesh.position.y + (b.h / SCALE) / 2;
-          if (bTop > currentTopY) {
-            currentTopY = bTop;
-          }
-        }
-      }
-      
-      const tryY = currentTopY + boxHalfH;
-      
-      if (tryY + boxHalfH <= H) {
+      for (let x = -halfW + boxHalfX; x <= halfW - boxHalfX; x += fineStep) {
         let hasCollision = false;
         for (const b of placedBoxes) {
-          if (boxesOverlapAt(box, x, tryY, z, b)) {
+          if (boxesOverlapAt(box, x, targetY, z, b)) {
             hasCollision = true;
             break;
           }
         }
         
         if (!hasCollision) {
-          if (currentTopY === 0 || hasPhysicalSupportFast(box, x, z, tryY)) {
-            return { x: x * SCALE, z: z * SCALE, y: tryY * SCALE };
+          if (layer === 0 || hasPhysicalSupportFast(box, x, z, targetY)) {
+            return { x: x * SCALE, z: z * SCALE, y: targetY * SCALE };
           }
         }
       }
