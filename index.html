@@ -221,7 +221,7 @@
 <div class="top-bar">
   <div class="left-panel">
     <div class="sec-title">📋 待装载纸箱 <span id="pcount" style="color:var(--accent)">(0)</span></div>
-    <div style="font-size:7px;color:var(--text2);margin-bottom:3px;">双击放入场景 | 拖拽到3D区</div>
+    <div style="font-size:7px;color:var(--text2);margin-bottom:3px;">双击放入集装箱</div>
     <div id="pending-list" style="margin-top:3px"></div>
   </div>
 
@@ -337,14 +337,12 @@
   <canvas id="three-canvas"></canvas>
   <div class="empty-hint" id="empty-hint">
     <span class="big">📦</span>
-    从左侧拖拽纸箱到此处<br><span style="font-size:10px;opacity:0.6">左键拖箱子 | 右键旋转视角</span>
+    双击待装箱列表放入集装箱
   </div>
   <div class="cam-hint">
-    🖱 <span class="key-hint">左键拖</span> 移动 &nbsp;|&nbsp;
-    <span class="key-hint">右键拖</span> 旋转 &nbsp;|&nbsp;
-    <span class="key-hint">滚轮</span> 缩放 &nbsp;|&nbsp;
-    <span class="key-hint">↑↓</span> 高度 &nbsp;|&nbsp;
-    <span class="key-hint">Del</span> 删除
+    <span class="key-hint">左键拖</span> 移动箱子 &nbsp;|&nbsp;
+    <span class="key-hint">右键拖</span> 旋转视角 &nbsp;|&nbsp;
+    <span class="key-hint">滚轮</span> 缩放
   </div>
   <div class="xyz-panel" id="xyz-panel">
     <div class="xyz-group">
@@ -538,7 +536,12 @@ function initThree() {
 
 // ===================== INPUT =====================
 function onKeyDown(e) {
+  // Ignore if typing in input fields
+  if (e.target.tagName === 'INPUT') return;
+  
   if (e.key === 'Shift') { isShiftHeld = true; updateCursor(); }
+  
+  // Arrow keys for height adjustment (original) and XZ movement (new)
   if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
     e.preventDefault();
     const box = selectedBox || hoveredBox;
@@ -548,6 +551,45 @@ function onKeyDown(e) {
       changeBoxHeight(box, delta);
     }
   }
+  
+  // X/Z/Y axis nudge with keyboard
+  const key = e.key.toLowerCase();
+  const shift = e.shiftKey;
+  
+  if (key === 'x') {
+    e.preventDefault();
+    nudgeBox('x', shift ? -50 : 50);
+    showToast(`${shift ? '←' : '→'} X轴 ${shift ? '-' : '+'}50mm`, 'info');
+    return;
+  }
+  if (key === 'z') {
+    e.preventDefault();
+    nudgeBox('z', shift ? -50 : 50);
+    showToast(`${shift ? '↑' : '↓'} Z轴 ${shift ? '-' : '+'}50mm`, 'info');
+    return;
+  }
+  if (key === 'y') {
+    e.preventDefault();
+    nudgeBox('y', shift ? -50 : 50);
+    showToast(`${shift ? '↓' : '↑'} Y轴 ${shift ? '-' : '+'}50mm`, 'info');
+    return;
+  }
+  if (key === 'r' || key === '0') {
+    e.preventDefault();
+    resetBoxPosition();
+    return;
+  }
+  if (e.key === 'ArrowLeft') {
+    e.preventDefault();
+    nudgeBox('x', -50);
+    return;
+  }
+  if (e.key === 'ArrowRight') {
+    e.preventDefault();
+    nudgeBox('x', 50);
+    return;
+  }
+  
   if (e.key === 'Delete' || e.key === 'Backspace') {
     if (selectedBox && document.activeElement.tagName === 'BODY') {
       if (confirm(`移除箱体 #${selectedBox.id} (${selectedBox.l}×${selectedBox.w}×${selectedBox.h}mm)?`)) {
@@ -2035,60 +2077,6 @@ function animate() {
   renderer.render(scene, camera);
 }
 
-// ===================== KEYBOARD SHORTCUTS =====================
-function initKeyboardShortcuts() {
-  document.addEventListener('keydown', e => {
-    // Ignore if typing in input fields
-    if (e.target.tagName === 'INPUT') return;
-    
-    const key = e.key.toLowerCase();
-    const shift = e.shiftKey;
-    
-    switch(key) {
-      case 'x':
-        // X轴微调: X = +50mm, Shift+X = -50mm
-        e.preventDefault();
-        nudgeBox('x', shift ? -50 : 50);
-        showToast(`${shift ? '←' : '→'} X轴 ${shift ? '-' : '+'}50mm`, 'info');
-        break;
-      case 'z':
-        // Z轴微调: Z = +50mm, Shift+Z = -50mm
-        e.preventDefault();
-        nudgeBox('z', shift ? -50 : 50);
-        showToast(`${shift ? '↑' : '↓'} Z轴 ${shift ? '-' : '+'}50mm`, 'info');
-        break;
-      case 'y':
-        // Y轴微调: Y = +50mm, Shift+Y = -50mm
-        e.preventDefault();
-        nudgeBox('y', shift ? -50 : 50);
-        showToast(`${shift ? '↓' : '↑'} Y轴 ${shift ? '-' : '+'}50mm`, 'info');
-        break;
-      case 'r':
-      case '0':
-        // R 或 0 = 快速回正(归零)
-        e.preventDefault();
-        resetBoxPosition();
-        break;
-      case 'arrowleft':
-        e.preventDefault();
-        nudgeBox('x', -50);
-        break;
-      case 'arrowright':
-        e.preventDefault();
-        nudgeBox('x', 50);
-        break;
-      case 'arrowup':
-        e.preventDefault();
-        nudgeBox('z', -50);
-        break;
-      case 'arrowdown':
-        e.preventDefault();
-        nudgeBox('z', 50);
-        break;
-    }
-  });
-}
-
 // ===================== INIT =====================
 function init() {
   renderCtypeList();
@@ -2096,7 +2084,6 @@ function init() {
   renderPresets();
   renderPendingList();
   initThree();
-  initKeyboardShortcuts();
 
   const viewer = document.getElementById('viewer');
   viewer.addEventListener('dragover', onViewerDragOver);
