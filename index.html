@@ -1537,7 +1537,7 @@ function quickAddAndLoad() {
   }
 }
 
-// 为箱子寻找最佳放置位置（列优先->行优先->层优先，优先堆满当前位置）
+// 为箱子寻找最佳放置位置（列优先->行优先->层优先，从地面往上堆）
 function findBestPosition(box) {
   const c = CONTAINERS[containerIdx];
   const halfW = c.iW / 2 / SCALE;
@@ -1558,8 +1558,8 @@ function findBestPosition(box) {
   const maxLayer = Math.floor(c.iH / box.h);
   
   // ===== 列优先 -> 行优先 -> 层优先 =====
-  // 装箱顺序：第1列的第1行（堆满所有层）-> 第1列的第2行（堆满所有层）-> ... -> 第2列的第1行...
-  // 策略：在每个位置找"可以放置的最高层"，优先堆叠而不是平铺
+  // 装箱顺序：第1列第1行（第1层→第2层→第3层...堆满）→ 第1列第2行 → ... → 第2列第1行...
+  // 策略：在每个XZ位置，从地面往上找"当前可以放的最高层"
   
   for (let col = 0; col < maxCol; col++) {
     for (let row = 0; row < maxRow; row++) {
@@ -1568,77 +1568,140 @@ function findBestPosition(box) {
       
       if (tryX + boxHalfX > halfW || tryZ + boxHalfZ > halfL) continue;
       
-      // 在这个XZ位置，从最高层向下找"可以放置的最高位置"
-      // 这样新箱子会优先堆叠在已有箱子上方，而不是平铺
-      let bestY = null;
+      // 在这个XZ位置，从地面往上找当前可以放的最高层
+      let currentTopY = 0; // 当前该位置的顶部高度（从地面开始）
       
-      for (let layer = maxLayer - 1; layer >= 0; layer--) {
-        const tryY = boxHalfH + layer * (box.h / SCALE);
+      // 检查该XZ位置上已有的箱子，找到当前最高层
+      for (const b of placedBoxes) {
+        const bHalfW = (b.w / SCALE) / 2;
+        const bHalfL = (b.l / SCALE) / 2;
+        const bx = b.mesh.position.x;
+        const bz = b.mesh.position.z;
         
-        if (tryY + boxHalfH > H) continue;
+        // 检查XZ投影是否重叠
+        const xOverlap = (tryX - boxHalfX < bx + bHalfW) && (tryX + boxHalfX > bx - bHalfW);
+        const zOverlap = (tryZ - boxHalfZ < bz + bHalfL) && (tryZ + boxHalfZ > bz - bHalfL);
         
-        // 检查该位置是否有碰撞
-        const testBox = {
-          id: -1, l: box.l, w: box.w, h: box.h, wt: box.wt, color: box.color,
-          x: tryX * SCALE, z: tryZ * SCALE, y: tryY * SCALE,
-          mesh: createBoxMesh({ l: box.l, w: box.w, h: box.h, wt: box.wt, color: box.color })
-        };
-        testBox.mesh.position.set(tryX, tryY, tryZ);
-        
-        const hasCollision = checkBoxCollision(testBox);
-        scene.remove(testBox.mesh);
-        
-        if (!hasCollision) {
-          // 地面层（layer=0）不需要支撑，上层需要检查支撑
-          if (layer === 0 || hasPhysicalSupport(box, tryX, tryZ, tryY)) {
-            bestY = tryY;
-            // 继续向上找更高的位置
+        if (xOverlap && zOverlap) {
+          // 该位置有箱子，更新当前顶部高度
+          const bTop = b.mesh.position.y + (b.h / SCALE) / 2;
+          if (bTop > currentTopY) {
+            currentTopY = bTop;
           }
         }
       }
       
-      // 找到这个XZ位置可以放置的最高层
-      if (bestY !== null) {
-        return { x: tryX * SCALE, z: tryZ * SCALE, y: bestY * SCALE };
+      // 尝试放在当前顶部高度（即堆叠在已有箱子上方）
+      const tryY = currentTopY + boxHalfH;
+      
+      if (tryY + boxHalfH <= H) {
+        // 快速检查：用简化的碰撞检测
+        let hasCollision = false;
+        for (const b of placedBoxes) {
+          if (boxesOverlapAt(box, tryX, tryY, tryZ, b)) {
+            hasCollision = true;
+            break;
+          }
+        }
+        
+        if (!hasCollision) {
+          // 地面层不需要支撑，上层需要检查
+          if (currentTopY === 0 || hasPhysicalSupportFast(box, tryX, tryZ, tryY)) {
+            return { x: tryX * SCALE, z: tryZ * SCALE, y: tryY * SCALE };
+          }
+        }
       }
     }
   }
   
-  // 粗搜索没找到，进行精细搜索
+  // 粗搜索（更精细的步长）
   const fineStep = 50 / SCALE;
   for (let x = -halfW + boxHalfX; x <= halfW - boxHalfX; x += fineStep) {
     for (let z = -halfL + boxHalfZ; z <= halfL - boxHalfZ; z += fineStep) {
-      let bestY = null;
+      let currentTopY = 0;
       
-      for (let layer = maxLayer - 1; layer >= 0; layer--) {
-        const tryY = boxHalfH + layer * (box.h / SCALE);
+      for (const b of placedBoxes) {
+        const bHalfW = (b.w / SCALE) / 2;
+        const bHalfL = (b.l / SCALE) / 2;
+        const bx = b.mesh.position.x;
+        const bz = b.mesh.position.z;
         
-        if (tryY + boxHalfH > H) continue;
+        const xOverlap = (x - boxHalfX < bx + bHalfW) && (x + boxHalfX > bx - bHalfW);
+        const zOverlap = (z - boxHalfZ < bz + bHalfL) && (z + boxHalfZ > bz - bHalfL);
         
-        const testBox = {
-          id: -1, l: box.l, w: box.w, h: box.h, wt: box.wt, color: box.color,
-          x: x * SCALE, z: z * SCALE, y: tryY * SCALE,
-          mesh: createBoxMesh({ l: box.l, w: box.w, h: box.h, wt: box.wt, color: box.color })
-        };
-        testBox.mesh.position.set(x, tryY, z);
-        
-        const hasCollision = checkBoxCollision(testBox);
-        scene.remove(testBox.mesh);
-        
-        if (!hasCollision) {
-          if (layer === 0 || hasPhysicalSupport(box, x, z, tryY)) {
-            bestY = tryY;
+        if (xOverlap && zOverlap) {
+          const bTop = b.mesh.position.y + (b.h / SCALE) / 2;
+          if (bTop > currentTopY) {
+            currentTopY = bTop;
           }
         }
       }
       
-      if (bestY !== null) {
-        return { x: x * SCALE, z: z * SCALE, y: bestY * SCALE };
+      const tryY = currentTopY + boxHalfH;
+      
+      if (tryY + boxHalfH <= H) {
+        let hasCollision = false;
+        for (const b of placedBoxes) {
+          if (boxesOverlapAt(box, x, tryY, z, b)) {
+            hasCollision = true;
+            break;
+          }
+        }
+        
+        if (!hasCollision) {
+          if (currentTopY === 0 || hasPhysicalSupportFast(box, x, z, tryY)) {
+            return { x: x * SCALE, z: z * SCALE, y: tryY * SCALE };
+          }
+        }
       }
     }
   }
   
   return null;
+}
+
+// 快速检查两个箱子在指定位置是否重叠（不创建mesh）
+function boxesOverlapAt(boxA, ax, ay, az, boxB) {
+  const aHalfW = (boxA.w / SCALE) / 2;
+  const aHalfH = (boxA.h / SCALE) / 2;
+  const aHalfL = (boxA.l / SCALE) / 2;
+  const bHalfW = (boxB.w / SCALE) / 2;
+  const bHalfH = (boxB.h / SCALE) / 2;
+  const bHalfL = (boxB.l / SCALE) / 2;
+  
+  const bx = boxB.mesh.position.x;
+  const by = boxB.mesh.position.y;
+  const bz = boxB.mesh.position.z;
+  
+  if (ax + aHalfW <= bx - bHalfW || ax - aHalfW >= bx + bHalfW) return false;
+  if (ay + aHalfH <= by - bHalfH || ay - aHalfH >= by + bHalfH) return false;
+  if (az + aHalfL <= bz - bHalfL || az - aHalfL >= bz + bHalfL) return false;
+  
+  return true;
+}
+
+// 快速检查物理支撑（不创建mesh）
+function hasPhysicalSupportFast(box, x, z, y) {
+  const boxHalfW = (box.w / SCALE) / 2;
+  const boxHalfL = (box.l / SCALE) / 2;
+  const boxBottom = y - (box.h / SCALE) / 2;
+  
+  for (const b of placedBoxes) {
+    const bTop = b.mesh.position.y + (b.h / SCALE) / 2;
+    if (Math.abs(bTop - boxBottom) > 0.01) continue;
+    
+    const bHalfW = (b.w / SCALE) / 2;
+    const bHalfL = (b.l / SCALE) / 2;
+    const bx = b.mesh.position.x;
+    const bz = b.mesh.position.z;
+    
+    const xOverlap = (x - boxHalfW < bx + bHalfW) && (x + boxHalfW > bx - bHalfW);
+    const zOverlap = (z - boxHalfL < bz + bHalfL) && (z + boxHalfL > bz - bHalfL);
+    
+    if (xOverlap && zOverlap) return true;
+  }
+  
+  return false;
 }
 
 // 检查箱子在指定位置是否有物理支撑（至少部分落在其他箱子上）
