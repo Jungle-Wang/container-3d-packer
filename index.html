@@ -63,23 +63,23 @@
   .btn-secondary { background: var(--panel2); color: var(--text); border: 1px solid var(--border); }
   .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
 
-  /* ===== LAYOUT: top 20% bar + bottom 80% full-bleed 3D ===== */
+  /* ===== LAYOUT: top 25% bar + bottom 75% full-bleed 3D ===== */
   .main { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
 
   .top-bar {
-    height: 20vh;
-    min-height: 150px;
-    max-height: 210px;
+    height: 25vh;
+    min-height: 180px;
+    max-height: 260px;
     background: var(--panel);
     border-bottom: 1px solid var(--border);
     display: grid;
-    grid-template-columns: 240px 1fr 240px;
+    grid-template-columns: 320px 1fr 280px;
     overflow: hidden;
     flex-shrink: 0;
     z-index: 5;
   }
 
-  .left-panel { overflow-y: auto; padding: 5px 8px; border-right: 1px solid var(--border); }
+  .left-panel { overflow-y: auto; padding: 6px 10px; border-right: 1px solid var(--border); }
   .sec-title { font-size: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text2); margin-bottom: 4px; padding-bottom: 2px; border-bottom: 1px solid var(--border); }
 
   .presets { display: flex; flex-wrap: wrap; gap: 3px; margin-bottom: 4px; }
@@ -157,7 +157,7 @@
   .toast.success { border-color: var(--green); color: var(--green); }
   .toast.error { border-color: var(--red); color: var(--red); }
 
-  .right-panel { background: var(--panel); border-left: 1px solid var(--border); overflow-y: auto; padding: 5px 8px; }
+  .right-panel { background: var(--panel); border-left: 1px solid var(--border); overflow-y: auto; padding: 6px 10px; }
   .stat-block { background: var(--panel2); border: 1px solid var(--border); border-radius: 4px; padding: 5px 6px; margin-bottom: 5px; }
   .sb-title { font-size: 7px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--text2); margin-bottom: 4px; }
   .sr { display: flex; justify-content: space-between; align-items: center; padding: 1px 0; font-size: 9px; border-bottom: 1px solid rgba(42,51,71,0.4); }
@@ -252,15 +252,55 @@
     <button class="add-btn" onclick="addBox()">+ 添加纸箱</button>
 
     <div class="sec-title" style="margin-top:6px">📋 待装载 <span id="pcount" style="color:var(--accent)">(0)</span></div>
+    <div style="font-size:7px;color:var(--text2);margin-bottom:3px;">双击放入场景 | 拖拽到3D区</div>
     <div id="pending-list" style="margin-top:3px"></div>
   </div>
 
-  <!-- center spacer: keeps 3-column grid balanced -->
-  <div style="display:flex;align-items:center;justify-content:center;background:var(--panel2);border-left:1px solid var(--border);border-right:1px solid var(--border);flex-direction:column;gap:6px;">
-    <div style="font-size:11px;color:var(--text2);text-align:center;line-height:1.4;">
-      📦 拖拽箱子到<br>3D 场景中
+  <!-- center: quick add area -->
+  <div style="background:var(--panel2);border-left:1px solid var(--border);border-right:1px solid var(--border);padding:8px 12px;overflow-y:auto;">
+    <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text2);margin-bottom:6px;">⚡ 快速添加</div>
+    <div style="font-size:8px;color:var(--text2);margin-bottom:4px;">输入尺寸后添加数量</div>
+    <div class="form-row" style="grid-template-columns:1fr 1fr 60px;margin-bottom:4px;">
+      <div class="form-group">
+        <label class="form-label">长mm</label>
+        <input type="number" class="form-input" id="quick-l" placeholder="600" min="50" max="5000">
+      </div>
+      <div class="form-group">
+        <label class="form-label">宽mm</label>
+        <input type="number" class="form-input" id="quick-w" placeholder="400" min="50" max="2500">
+      </div>
+      <div class="form-group">
+        <label class="form-label">数量</label>
+        <input type="number" class="form-input" id="quick-qty" placeholder="1" min="1" max="100" value="1">
+      </div>
     </div>
-    <div style="font-size:8px;color:var(--text2);opacity:0.6;">左键移动 | 右键旋转 | 滚轮缩放</div>
+    <div class="form-row" style="grid-template-columns:1fr 1fr 60px;margin-bottom:4px;">
+      <div class="form-group">
+        <label class="form-label">高mm</label>
+        <input type="number" class="form-input" id="quick-h" placeholder="300" min="50" max="3000">
+      </div>
+      <div class="form-group">
+        <label class="form-label">kg</label>
+        <input type="number" class="form-input" id="quick-wt" placeholder="25" min="0.1" max="30000" step="0.1">
+      </div>
+      <div class="form-group">
+        <label class="form-label">颜色</label>
+        <select class="form-input" id="quick-color" style="padding:2px;font-size:9px;">
+          <option value="#e53935">红</option>
+          <option value="#1e88e5">蓝</option>
+          <option value="#43a047">绿</option>
+          <option value="#fdd835">黄</option>
+          <option value="#fb8c00">橙</option>
+          <option value="#8e24aa">紫</option>
+          <option value="#00acc1">青</option>
+          <option value="#757575">灰</option>
+          <option value="#d81b60">粉</option>
+          <option value="#8d6e63">棕</option>
+        </select>
+      </div>
+    </div>
+    <button class="add-btn" onclick="quickAddBoxes()" style="margin-top:4px;">+ 批量添加</button>
+    <div style="font-size:8px;color:var(--text2);margin-top:6px;text-align:center;">💡 提示：双击待装列表中的箱子可直接放入场景</div>
   </div>
 
   <div class="right-panel">
@@ -902,25 +942,35 @@ function checkBoxCollision(movingBox) {
 }
 
 function boxesOverlap(a, b) {
+  // Physical collision detection - boxes cannot intersect
   // a and b are box objects with mesh.position (in Three.js units) and l, w, h (in mm)
   // BoxGeometry(W, H, L): X=width, Y=height, Z=length
-  // mesh.position.x = box.x/SCALE (width axis), mesh.position.z = box.z/SCALE (length axis)
-  const ax = a.mesh.position.x, az = a.mesh.position.z;
-  const bx = b.mesh.position.x, bz = b.mesh.position.z;
-  const aHalfW = a.w / SCALE / 2, aHalfL = a.l / SCALE / 2;
-  const bHalfW = b.w / SCALE / 2, bHalfL = b.l / SCALE / 2;
-
-  // Check XZ overlap (horizontal)
-  if (ax + aHalfW <= bx - bHalfW || ax - aHalfW >= bx + bHalfW) return false;
-  if (az + aHalfL <= bz - bHalfL || az - aHalfL >= bz + bHalfL) return false;
-
-  // Check Y overlap (vertical)
-  const aHalfH = a.h / SCALE / 2, bHalfH = b.h / SCALE / 2;
-  const aBot = a.mesh.position.y - aHalfH, aTop = a.mesh.position.y + aHalfH;
-  const bBot = b.mesh.position.y - bHalfH, bTop = b.mesh.position.y + bHalfH;
-  if (aBot >= bTop || bBot >= aTop) return false;
-
-  return true; // all three axes overlap = collision
+  
+  // Get box centers
+  const ax = a.mesh.position.x, ay = a.mesh.position.y, az = a.mesh.position.z;
+  const bx = b.mesh.position.x, by = b.mesh.position.y, bz = b.mesh.position.z;
+  
+  // Half dimensions in Three.js units
+  const aHalfW = a.w / SCALE / 2, aHalfH = a.h / SCALE / 2, aHalfL = a.l / SCALE / 2;
+  const bHalfW = b.w / SCALE / 2, bHalfH = b.h / SCALE / 2, bHalfL = b.l / SCALE / 2;
+  
+  // X axis overlap check (width)
+  const aMinX = ax - aHalfW, aMaxX = ax + aHalfW;
+  const bMinX = bx - bHalfW, bMaxX = bx + bHalfW;
+  if (aMaxX <= bMinX || aMinX >= bMaxX) return false;
+  
+  // Y axis overlap check (height)
+  const aMinY = ay - aHalfH, aMaxY = ay + aHalfH;
+  const bMinY = by - bHalfH, bMaxY = by + bHalfH;
+  if (aMaxY <= bMinY || aMinY >= bMaxY) return false;
+  
+  // Z axis overlap check (length)
+  const aMinZ = az - aHalfL, aMaxZ = az + aHalfL;
+  const bMinZ = bz - bHalfL, bMaxZ = bz + bHalfL;
+  if (aMaxZ <= bMinZ || aMinZ >= bMaxZ) return false;
+  
+  // All three axes overlap = collision
+  return true;
 }
 
 // Clamp position to avoid collision, returns true if position was valid
@@ -1299,6 +1349,32 @@ function addBox() {
   ['inp-l','inp-w','inp-h','inp-wt'].forEach(id => document.getElementById(id).value = '');
 }
 
+function quickAddBoxes() {
+  const l = parseFloat(document.getElementById('quick-l').value);
+  const w = parseFloat(document.getElementById('quick-w').value);
+  const h = parseFloat(document.getElementById('quick-h').value);
+  const wt = parseFloat(document.getElementById('quick-wt').value);
+  const qty = parseInt(document.getElementById('quick-qty').value) || 1;
+  const colorHex = document.getElementById('quick-color').value;
+  const color = COLORS.find(c => c.hex === colorHex) || COLORS[0];
+
+  if (!l || !w || !h || !wt) { showToast('请填写所有参数', 'error'); return; }
+  if (l < 50 || w < 50 || h < 50) { showToast('尺寸最小50mm', 'error'); return; }
+
+  const c = CONTAINERS[containerIdx];
+  if (l > c.iL || w > c.iW || h > c.iH) {
+    showToast(`超出集装箱！最大: ${c.iL}×${c.iW}×${c.iH}mm`, 'error');
+    return;
+  }
+
+  for (let i = 0; i < qty; i++) {
+    pendingBoxes.push({ id: ++boxIdCounter, l, w, h, wt, color: color });
+  }
+  renderPendingList();
+  updateAllStats();
+  showToast(`✅ 已添加 ${qty} 个 ${l}×${w}×${h}mm 纸箱`, 'success');
+}
+
 function placeBox(box, pendingIdx) {
   const c = CONTAINERS[containerIdx];
   const totalWt = placedBoxes.reduce((s, b) => s + b.wt, 0) + box.wt;
@@ -1364,7 +1440,7 @@ function onViewerDrop(e) {
 
     let dropX = pos.x;
     let dropZ = pos.z;
-    // Clamp
+    // Clamp to container bounds
     dropX = Math.max(-halfW + boxHalfX, Math.min(halfW - boxHalfX, dropX));
     dropZ = Math.max(-halfL + boxHalfZ, Math.min(halfL - boxHalfZ, dropZ));
 
@@ -1372,6 +1448,16 @@ function onViewerDrop(e) {
     box.z = dropZ * SCALE;
     box.y = box.h / 2;
     box.mesh = createBoxMesh(box);
+    
+    // Check collision before adding
+    if (checkBoxCollision(box)) {
+      scene.remove(box.mesh);
+      showToast('⚠ 该位置与其他箱子重叠，请调整位置', 'error');
+      pendingDragIdx = -1;
+      document.querySelectorAll('.pending-item').forEach(el => el.style.opacity = '1');
+      return;
+    }
+    
     scene.add(box.mesh);
     placedBoxes.push(box);
     pendingBoxes.splice(pendingDragIdx, 1);
@@ -1425,10 +1511,49 @@ function renderPendingList() {
 function placeBoxDirectly(idx) {
   if (idx < 0 || idx >= pendingBoxes.length) return;
   const box = pendingBoxes[idx];
-  box.x = 0; box.z = 0; box.y = box.h / 2;
-  box.mesh = createBoxMesh(box);
-  scene.add(box.mesh);
-  placedBoxes.push(box);
+  
+  // Try to find a non-colliding position starting from center
+  const c = CONTAINERS[containerIdx];
+  const halfW = c.iW / 2 / SCALE;
+  const halfL = c.iL / 2 / SCALE;
+  const boxHalfX = box.w / 2 / SCALE;
+  const boxHalfZ = box.l / 2 / SCALE;
+  
+  // Start positions to try (center, then offset in grid pattern)
+  const tryPositions = [
+    { x: 0, z: 0 },
+    { x: 100/SCALE, z: 0 }, { x: -100/SCALE, z: 0 },
+    { x: 0, z: 100/SCALE }, { x: 0, z: -100/SCALE },
+    { x: 200/SCALE, z: 0 }, { x: -200/SCALE, z: 0 },
+    { x: 0, z: 200/SCALE }, { x: 0, z: -200/SCALE },
+    { x: 300/SCALE, z: 300/SCALE }, { x: -300/SCALE, z: -300/SCALE },
+  ];
+  
+  let placed = false;
+  for (const pos of tryPositions) {
+    let tryX = Math.max(-halfW + boxHalfX, Math.min(halfW - boxHalfX, pos.x));
+    let tryZ = Math.max(-halfL + boxHalfZ, Math.min(halfL - boxHalfZ, pos.z));
+    
+    box.x = tryX * SCALE;
+    box.z = tryZ * SCALE;
+    box.y = box.h / 2;
+    box.mesh = createBoxMesh(box);
+    
+    if (!checkBoxCollision(box)) {
+      scene.add(box.mesh);
+      placedBoxes.push(box);
+      placed = true;
+      break;
+    } else {
+      scene.remove(box.mesh);
+    }
+  }
+  
+  if (!placed) {
+    showToast('⚠ 找不到不重叠的位置，请手动拖拽放置', 'error');
+    return;
+  }
+  
   pendingBoxes.splice(idx, 1);
   renderPendingList();
   selectBox(box);
@@ -1699,12 +1824,14 @@ function renderPresets() {
 
 function applyPreset(idx) {
   const p = PRESETS[idx];
-  ['inp-l','inp-w','inp-h','inp-wt'].forEach(id => document.getElementById(id).value = '');
-  document.getElementById('inp-l').value = p.l;
-  document.getElementById('inp-w').value = p.w;
-  document.getElementById('inp-h').value = p.h;
-  document.getElementById('inp-wt').value = p.wt;
-  document.getElementById('inp-l').focus();
+  // Fill quick add area for convenience
+  document.getElementById('quick-l').value = p.l;
+  document.getElementById('quick-w').value = p.w;
+  document.getElementById('quick-h').value = p.h;
+  document.getElementById('quick-wt').value = p.wt;
+  document.getElementById('quick-qty').value = 1;
+  document.getElementById('quick-l').focus();
+  showToast(`✅ 已填入 ${p.label} 尺寸，可修改数量后添加`, 'success');
 }
 
 function renderColorPicker() {
