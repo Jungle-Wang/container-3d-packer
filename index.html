@@ -2327,9 +2327,18 @@ function init() {
   });
 }
 
-console.log('About to call init()');
-init();
-console.log('init() called');
+// 确保DOM加载完成后再执行
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOMContentLoaded - calling init()');
+    alert('DOM ready, starting init');
+    init();
+  });
+} else {
+  console.log('DOM already ready - calling init()');
+  alert('DOM already ready, starting init');
+  init();
+}
 </script>
 </body>
 </html>
