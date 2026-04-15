@@ -1511,7 +1511,7 @@ function quickAddAndLoad() {
     if (pos) {
       box.x = pos.x;
       box.z = pos.z;
-      box.y = box.h / 2;
+      box.y = pos.y;
       box.mesh = createBoxMesh(box);
       scene.add(box.mesh);
       placedBoxes.push(box);
@@ -1536,59 +1536,87 @@ function quickAddAndLoad() {
   }
 }
 
-// 为箱子寻找最佳放置位置
+// 为箱子寻找最佳放置位置（支持堆叠）
 function findBestPosition(box) {
   const c = CONTAINERS[containerIdx];
   const halfW = c.iW / 2 / SCALE;
   const halfL = c.iL / 2 / SCALE;
   const boxHalfX = box.w / 2 / SCALE;
   const boxHalfZ = box.l / 2 / SCALE;
+  const H = c.iH / SCALE;
+  const boxHalfH = box.h / 2 / SCALE;
   
-  // 从后左角开始，行优先搜索
+  // 搜索步长
   const stepX = Math.max(box.w / SCALE, 50 / SCALE);
   const stepZ = Math.max(box.l / SCALE, 50 / SCALE);
   
   const maxCol = Math.floor((c.iW - box.w) / Math.max(box.w, 50)) + 1;
   const maxRow = Math.floor((c.iL - box.l) / Math.max(box.l, 50)) + 1;
   
-  for (let row = 0; row < maxRow; row++) {
-    for (let col = 0; col < maxCol; col++) {
-      const tryX = -halfW + boxHalfX + col * stepX;
-      const tryZ = -halfL + boxHalfZ + row * stepZ;
-      
-      if (tryX + boxHalfX > halfW || tryZ + boxHalfZ > halfL) continue;
-      
-      const testBox = {
-        id: -1, l: box.l, w: box.w, h: box.h, wt: box.wt, color: box.color,
-        x: tryX * SCALE, z: tryZ * SCALE, y: box.h / 2,
-        mesh: createBoxMesh({ l: box.l, w: box.w, h: box.h, wt: box.wt, color: box.color,
-          x: tryX * SCALE, z: tryZ * SCALE, y: box.h / 2 })
-      };
-      
-      const hasCollision = checkBoxCollision(testBox);
-      scene.remove(testBox.mesh);
-      
-      if (!hasCollision) {
-        return { x: tryX * SCALE, z: tryZ * SCALE };
+  // 收集所有可能的Y高度（底层 + 每个已放置箱子的顶部）
+  const yLevels = new Set();
+  yLevels.add(boxHalfH); // 底层
+  
+  for (const b of placedBoxes) {
+    const topY = b.mesh.position.y + (b.h / SCALE) / 2 + boxHalfH;
+    if (topY + boxHalfH <= H) { // 不超过集装箱高度
+      yLevels.add(topY);
+    }
+  }
+  
+  // 按Y高度从低到高排序（优先放在底层，再逐层向上）
+  const sortedYLevels = Array.from(yLevels).sort((a, b) => a - b);
+  
+  // 对每个Y高度，搜索XZ平面
+  for (const tryY of sortedYLevels) {
+    // 粗搜索
+    for (let row = 0; row < maxRow; row++) {
+      for (let col = 0; col < maxCol; col++) {
+        const tryX = -halfW + boxHalfX + col * stepX;
+        const tryZ = -halfL + boxHalfZ + row * stepZ;
+        
+        if (tryX + boxHalfX > halfW || tryZ + boxHalfZ > halfL) continue;
+        if (tryY + boxHalfH > H) continue; // 超出集装箱高度
+        
+        const testBox = {
+          id: -1, l: box.l, w: box.w, h: box.h, wt: box.wt, color: box.color,
+          x: tryX * SCALE, z: tryZ * SCALE, y: tryY * SCALE,
+          mesh: createBoxMesh({ l: box.l, w: box.w, h: box.h, wt: box.wt, color: box.color,
+            x: tryX * SCALE, z: tryZ * SCALE, y: tryY * SCALE })
+        };
+        testBox.mesh.position.set(tryX, tryY, tryZ);
+        
+        const hasCollision = checkBoxCollision(testBox);
+        scene.remove(testBox.mesh);
+        
+        if (!hasCollision) {
+          return { x: tryX * SCALE, z: tryZ * SCALE, y: tryY * SCALE };
+        }
       }
     }
   }
   
-  // 精细搜索
+  // 精细搜索（在所有Y层）
   const fineStep = 50 / SCALE;
-  for (let x = -halfW + boxHalfX; x <= halfW - boxHalfX; x += fineStep) {
-    for (let z = -halfL + boxHalfZ; z <= halfL - boxHalfZ; z += fineStep) {
-      const testBox = {
-        id: -1, l: box.l, w: box.w, h: box.h, wt: box.wt, color: box.color,
-        x: x * SCALE, z: z * SCALE, y: box.h / 2,
-        mesh: createBoxMesh({ l: box.l, w: box.w, h: box.h, wt: box.wt, color: box.color,
-          x: x * SCALE, z: z * SCALE, y: box.h / 2 })
-      };
-      const hasCollision = checkBoxCollision(testBox);
-      scene.remove(testBox.mesh);
-      
-      if (!hasCollision) {
-        return { x: x * SCALE, z: z * SCALE };
+  for (const tryY of sortedYLevels) {
+    for (let x = -halfW + boxHalfX; x <= halfW - boxHalfX; x += fineStep) {
+      for (let z = -halfL + boxHalfZ; z <= halfL - boxHalfZ; z += fineStep) {
+        if (tryY + boxHalfH > H) continue;
+        
+        const testBox = {
+          id: -1, l: box.l, w: box.w, h: box.h, wt: box.wt, color: box.color,
+          x: x * SCALE, z: z * SCALE, y: tryY * SCALE,
+          mesh: createBoxMesh({ l: box.l, w: box.w, h: box.h, wt: box.wt, color: box.color,
+            x: x * SCALE, z: z * SCALE, y: tryY * SCALE })
+        };
+        testBox.mesh.position.set(x, tryY, z);
+        
+        const hasCollision = checkBoxCollision(testBox);
+        scene.remove(testBox.mesh);
+        
+        if (!hasCollision) {
+          return { x: x * SCALE, z: z * SCALE, y: tryY * SCALE };
+        }
       }
     }
   }
