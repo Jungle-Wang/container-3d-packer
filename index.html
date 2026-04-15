@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>集装箱3D装载游戏 | Container 3D Packer v9</title>
+<title>集装箱3D装载游戏 | Container 3D Packer v2</title>
 <style>
   :root {
     --bg: #0a0e14;
@@ -2286,6 +2286,14 @@ function animate() {
 // ===================== INIT =====================
 function init() {
   console.log('INIT START');
+  
+  // Global error handler
+  window.onerror = function(msg, url, line, col, error) {
+    alert('JS ERROR: ' + msg + ' at line ' + line);
+    console.error('Global error:', msg, url, line, col, error);
+    return false;
+  };
+  
   try {
     renderCtypeList();
     console.log('renderCtypeList OK');
@@ -2299,7 +2307,7 @@ function init() {
     console.log('initThree OK');
   } catch(e) {
     console.error('INIT ERROR:', e);
-    alert('初始化错误: ' + e.message);
+    alert('初始化错误: ' + e.message + '\n' + e.stack);
   }
 
   const viewer = document.getElementById('viewer');
