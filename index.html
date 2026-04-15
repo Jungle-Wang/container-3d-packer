@@ -1902,90 +1902,23 @@ function renderPendingList() {
 function placeBoxDirectly(idx) {
   if (idx < 0 || idx >= pendingBoxes.length) return;
   const box = pendingBoxes[idx];
-  
-  // Position finder - searches from back-left corner (like real container loading)
-  const c = CONTAINERS[containerIdx];
-  const halfW = c.iW / 2 / SCALE;
-  const halfL = c.iL / 2 / SCALE;
-  const boxHalfX = box.w / 2 / SCALE;
-  const boxHalfZ = box.l / 2 / SCALE;
-  
-  // Start from back-left corner (-halfW, -halfL) and fill forward-right
-  // Grid search with box-sized steps
-  const stepX = box.w / SCALE;
-  const stepZ = box.l / SCALE;
-  
-  // Calculate number of positions to try
-  const maxCol = Math.floor((c.iW - box.w) / Math.max(box.w, 50)) + 1;
-  const maxRow = Math.floor((c.iL - box.l) / Math.max(box.l, 50)) + 1;
-  
-  let bestPos = null;
-  
-  // Search from back-left corner, row by row (like loading a real container)
-  for (let row = 0; row < maxRow && !bestPos; row++) {
-    for (let col = 0; col < maxCol && !bestPos; col++) {
-      // Start from back-left: -halfW + boxHalfX, -halfL + boxHalfZ
-      const tryX = -halfW + boxHalfX + col * stepX;
-      const tryZ = -halfL + boxHalfZ + row * stepZ;
-      
-      // Check bounds
-      if (tryX + boxHalfX > halfW || tryZ + boxHalfZ > halfL) continue;
-      
-      // Create temporary box to test collision
-      const testBox = {
-        id: -1,
-        l: box.l, w: box.w, h: box.h, wt: box.wt, color: box.color,
-        x: tryX * SCALE,
-        z: tryZ * SCALE,
-        y: box.h / 2,
-        mesh: createBoxMesh({
-          l: box.l, w: box.w, h: box.h, wt: box.wt, color: box.color,
-          x: tryX * SCALE, z: tryZ * SCALE, y: box.h / 2
-        })
-      };
-      
-      if (!checkBoxCollision(testBox)) {
-        bestPos = { x: tryX * SCALE, z: tryZ * SCALE };
-      }
-      scene.remove(testBox.mesh);
-    }
-  }
-  
-  // If no grid position found, try a finer search
-  if (!bestPos) {
-    const fineStep = 50 / SCALE; // 50mm steps
-    for (let x = -halfW + boxHalfX; x <= halfW - boxHalfX && !bestPos; x += fineStep) {
-      for (let z = -halfL + boxHalfZ; z <= halfL - boxHalfZ && !bestPos; z += fineStep) {
-        const testBox = {
-          id: -1,
-          l: box.l, w: box.w, h: box.h, wt: box.wt, color: box.color,
-          x: x * SCALE, z: z * SCALE, y: box.h / 2,
-          mesh: createBoxMesh({
-            l: box.l, w: box.w, h: box.h, wt: box.wt, color: box.color,
-            x: x * SCALE, z: z * SCALE, y: box.h / 2
-          })
-        };
-        if (!checkBoxCollision(testBox)) {
-          bestPos = { x: x * SCALE, z: z * SCALE };
-        }
-        scene.remove(testBox.mesh);
-      }
-    }
-  }
-  
+
+  // 使用 findBestPosition 来找到最佳位置（支持堆叠）
+  const bestPos = findBestPosition(box);
+
   if (!bestPos) {
     showToast('⚠ 找不到不重叠的位置，请手动拖拽放置', 'error');
     return;
   }
-  
+
   // Place box at best position found
   box.x = bestPos.x;
   box.z = bestPos.z;
-  box.y = box.h / 2;
+  box.y = bestPos.y;
   box.mesh = createBoxMesh(box);
   scene.add(box.mesh);
   placedBoxes.push(box);
-  
+
   pendingBoxes.splice(idx, 1);
   renderPendingList();
   selectBox(box);
