@@ -2293,11 +2293,22 @@ function animate() {
 
 // ===================== INIT =====================
 function init() {
-  renderCtypeList();
-  renderColorPicker();
-  renderPresets();
-  renderPendingList();
-  initThree();
+  console.log('INIT START');
+  try {
+    renderCtypeList();
+    console.log('renderCtypeList OK');
+    renderColorPicker();
+    console.log('renderColorPicker OK');
+    renderPresets();
+    console.log('renderPresets OK');
+    renderPendingList();
+    console.log('renderPendingList OK');
+    initThree();
+    console.log('initThree OK');
+  } catch(e) {
+    console.error('INIT ERROR:', e);
+    alert('初始化错误: ' + e.message);
+  }
 
   const viewer = document.getElementById('viewer');
   viewer.addEventListener('dragover', onViewerDragOver);
