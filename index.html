@@ -936,42 +936,58 @@ function checkBoxCollision(movingBox) {
   const mH = movingBox.h / SCALE;
   const mBot = movingBox.mesh.position.y - mH / 2;
   const mTop = movingBox.mesh.position.y + mH / 2;
+  
+  // Check container bounds
   if (mTop > H || mBot < 0) return true;
+  
+  const halfW = c.iW / SCALE / 2;
+  const halfL = c.iL / SCALE / 2;
+  const mHalfW = movingBox.w / SCALE / 2;
+  const mHalfL = movingBox.l / SCALE / 2;
+  const mX = movingBox.mesh.position.x;
+  const mZ = movingBox.mesh.position.z;
+  
+  // Check horizontal bounds
+  if (mX - mHalfW < -halfW || mX + mHalfW > halfW) return true;
+  if (mZ - mHalfL < -halfL || mZ + mHalfL > halfL) return true;
 
+  // Check collision with other boxes
   for (const b of placedBoxes) {
-    if (b.id === movingBox.id) continue;
+    // Skip self - compare by reference or id
+    if (b === movingBox) continue;
+    if (movingBox.id !== -1 && b.id === movingBox.id) continue;
     if (boxesOverlap(movingBox, b)) return true;
   }
   return false;
 }
 
 function boxesOverlap(a, b) {
-  // Physical collision detection - boxes cannot intersect
-  // a and b are box objects with mesh.position (in Three.js units) and l, w, h (in mm)
-  // BoxGeometry(W, H, L): X=width, Y=height, Z=length
+  // AABB collision detection - boxes cannot intersect
+  // a and b are box objects with mesh.position (center in Three.js units) and l, w, h (in mm)
   
-  // Get box centers
+  // Get box centers (in Three.js units where 1 unit = 100mm)
   const ax = a.mesh.position.x, ay = a.mesh.position.y, az = a.mesh.position.z;
   const bx = b.mesh.position.x, by = b.mesh.position.y, bz = b.mesh.position.z;
   
   // Half dimensions in Three.js units
-  const aHalfW = a.w / SCALE / 2, aHalfH = a.h / SCALE / 2, aHalfL = a.l / SCALE / 2;
-  const bHalfW = b.w / SCALE / 2, bHalfH = b.h / SCALE / 2, bHalfL = b.l / SCALE / 2;
+  const aHalfW = (a.w / SCALE) / 2;
+  const aHalfH = (a.h / SCALE) / 2;
+  const aHalfL = (a.l / SCALE) / 2;
+  const bHalfW = (b.w / SCALE) / 2;
+  const bHalfH = (b.h / SCALE) / 2;
+  const bHalfL = (b.l / SCALE) / 2;
   
-  // X axis overlap check (width)
-  const aMinX = ax - aHalfW, aMaxX = ax + aHalfW;
-  const bMinX = bx - bHalfW, bMaxX = bx + bHalfW;
-  if (aMaxX <= bMinX || aMinX >= bMaxX) return false;
+  // X axis overlap check (width direction)
+  // No overlap if: a is completely to the left of b, OR a is completely to the right of b
+  if (ax + aHalfW <= bx - bHalfW || ax - aHalfW >= bx + bHalfW) return false;
   
-  // Y axis overlap check (height)
-  const aMinY = ay - aHalfH, aMaxY = ay + aHalfH;
-  const bMinY = by - bHalfH, bMaxY = by + bHalfH;
-  if (aMaxY <= bMinY || aMinY >= bMaxY) return false;
+  // Y axis overlap check (height direction)
+  // No overlap if: a is completely below b, OR a is completely above b
+  if (ay + aHalfH <= by - bHalfH || ay - aHalfH >= by + bHalfH) return false;
   
-  // Z axis overlap check (length)
-  const aMinZ = az - aHalfL, aMaxZ = az + aHalfL;
-  const bMinZ = bz - bHalfL, bMaxZ = bz + bHalfL;
-  if (aMaxZ <= bMinZ || aMinZ >= bMaxZ) return false;
+  // Z axis overlap check (length direction)
+  // No overlap if: a is completely behind b, OR a is completely in front of b
+  if (az + aHalfL <= bz - bHalfL || az - aHalfL >= bz + bHalfL) return false;
   
   // All three axes overlap = collision
   return true;
