@@ -478,6 +478,14 @@ function initPackingQueue(box) {
 function initThree() {
   const viewer = document.getElementById('viewer');
   const canvas = document.getElementById('three-canvas');
+  
+  console.log('initThree: viewer size:', viewer.clientWidth, 'x', viewer.clientHeight);
+  
+  if (viewer.clientWidth === 0 || viewer.clientHeight === 0) {
+    console.warn('Viewer has zero size, delaying init');
+    setTimeout(initThree, 100);
+    return;
+  }
 
   scene = new THREE.Scene();
   scene.fog = new THREE.FogExp2(0xf0f4f8, 0.004);
