@@ -279,7 +279,6 @@
 
     <!-- 常用尺寸预设 -->
     <div>
-      <div style="font-size:8px;color:var(--text2);margin-bottom:3px;text-transform:uppercase;letter-spacing:0.5px;">常用尺寸</div>
       <div class="presets" id="presets"></div>
     </div>
 
@@ -1976,7 +1975,7 @@ function renderCtypeList() {
     <button class="ctype-btn ${i === containerIdx ? 'active' : ''}"
             id="ctype-${c.id}" onclick="selectContainer('${c.id}')">
       <div class="ctype-name">${c.short}</div>
-      <div class="ctype-spec">${c.iL}×${c.iW}×${c.iH}mm</div>
+      <div class="ctype-spec">${c.iL}×${c.iW}×${c.iH}mm · ${c.maxWt}kg</div>
     </button>
   `).join('');
 }
