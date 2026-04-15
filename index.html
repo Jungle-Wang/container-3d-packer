@@ -1537,7 +1537,7 @@ function quickAddAndLoad() {
   }
 }
 
-// 为箱子寻找最佳放置位置（物理堆叠：先填满底层，再逐层向上）
+// 为箱子寻找最佳放置位置（列优先->行优先->层优先）
 function findBestPosition(box) {
   const c = CONTAINERS[containerIdx];
   const halfW = c.iW / 2 / SCALE;
@@ -1554,119 +1554,68 @@ function findBestPosition(box) {
   const maxCol = Math.floor((c.iW - box.w) / Math.max(box.w, 50)) + 1;
   const maxRow = Math.floor((c.iL - box.l) / Math.max(box.l, 50)) + 1;
   
-  // ===== 第一步：尝试放在地面（Y = boxHalfH）=====
-  for (let row = 0; row < maxRow; row++) {
-    for (let col = 0; col < maxCol; col++) {
+  // 计算最大层数
+  const maxLayer = Math.floor(c.iH / box.h);
+  
+  // ===== 列优先 -> 行优先 -> 层优先 =====
+  // 装箱顺序：第1列的第1行（第1层→第2层→...）-> 第1列的第2行 -> ... -> 第2列的第1行...
+  
+  for (let col = 0; col < maxCol; col++) {
+    for (let row = 0; row < maxRow; row++) {
       const tryX = -halfW + boxHalfX + col * stepX;
       const tryZ = -halfL + boxHalfZ + row * stepZ;
       
       if (tryX + boxHalfX > halfW || tryZ + boxHalfZ > halfL) continue;
       
-      const groundY = boxHalfH;
-      
-      // 检查地面位置是否有碰撞
-      const testBox = {
-        id: -1, l: box.l, w: box.w, h: box.h, wt: box.wt, color: box.color,
-        x: tryX * SCALE, z: tryZ * SCALE, y: groundY * SCALE,
-        mesh: createBoxMesh({ l: box.l, w: box.w, h: box.h, wt: box.wt, color: box.color })
-      };
-      testBox.mesh.position.set(tryX, groundY, tryZ);
-      
-      const hasCollision = checkBoxCollision(testBox);
-      scene.remove(testBox.mesh);
-      
-      if (!hasCollision) {
-        // 地面有空位，直接放
-        return { x: tryX * SCALE, z: tryZ * SCALE, y: groundY * SCALE };
-      }
-    }
-  }
-  
-  // 地面精细搜索
-  const fineStep = 50 / SCALE;
-  for (let x = -halfW + boxHalfX; x <= halfW - boxHalfX; x += fineStep) {
-    for (let z = -halfL + boxHalfZ; z <= halfL - boxHalfZ; z += fineStep) {
-      const groundY = boxHalfH;
-      
-      const testBox = {
-        id: -1, l: box.l, w: box.w, h: box.h, wt: box.wt, color: box.color,
-        x: x * SCALE, z: z * SCALE, y: groundY * SCALE,
-        mesh: createBoxMesh({ l: box.l, w: box.w, h: box.h, wt: box.wt, color: box.color })
-      };
-      testBox.mesh.position.set(x, groundY, z);
-      
-      const hasCollision = checkBoxCollision(testBox);
-      scene.remove(testBox.mesh);
-      
-      if (!hasCollision) {
-        return { x: x * SCALE, z: z * SCALE, y: groundY * SCALE };
-      }
-    }
-  }
-  
-  // ===== 第二步：地面满了，尝试堆叠 =====
-  // 收集所有可能的堆叠高度（每个已放置箱子的顶部）
-  const stackLevels = new Set();
-  for (const b of placedBoxes) {
-    const bTop = b.mesh.position.y + (b.h / SCALE) / 2;
-    const stackY = bTop + boxHalfH;
-    if (stackY + boxHalfH <= H) {
-      stackLevels.add(stackY);
-    }
-  }
-  
-  // 按从低到高排序
-  const sortedStackY = Array.from(stackLevels).sort((a, b) => a - b);
-  
-  // 对每个堆叠高度，搜索可以放置的位置
-  for (const stackY of sortedStackY) {
-    // 粗搜索
-    for (let row = 0; row < maxRow; row++) {
-      for (let col = 0; col < maxCol; col++) {
-        const tryX = -halfW + boxHalfX + col * stepX;
-        const tryZ = -halfL + boxHalfZ + row * stepZ;
+      // 在这个XZ位置，从地面开始逐层向上找空位
+      for (let layer = 0; layer < maxLayer; layer++) {
+        const tryY = boxHalfH + layer * (box.h / SCALE);
         
-        if (tryX + boxHalfX > halfW || tryZ + boxHalfZ > halfL) continue;
-        if (stackY + boxHalfH > H) continue;
+        if (tryY + boxHalfH > H) continue;
         
         // 检查该位置是否有碰撞
         const testBox = {
           id: -1, l: box.l, w: box.w, h: box.h, wt: box.wt, color: box.color,
-          x: tryX * SCALE, z: tryZ * SCALE, y: stackY * SCALE,
+          x: tryX * SCALE, z: tryZ * SCALE, y: tryY * SCALE,
           mesh: createBoxMesh({ l: box.l, w: box.w, h: box.h, wt: box.wt, color: box.color })
         };
-        testBox.mesh.position.set(tryX, stackY, tryZ);
+        testBox.mesh.position.set(tryX, tryY, tryZ);
         
         const hasCollision = checkBoxCollision(testBox);
         scene.remove(testBox.mesh);
         
         if (!hasCollision) {
-          // 无碰撞，检查是否有物理支撑
-          if (hasPhysicalSupport(box, tryX, tryZ, stackY)) {
-            return { x: tryX * SCALE, z: tryZ * SCALE, y: stackY * SCALE };
+          // 地面层（layer=0）不需要支撑，上层需要检查支撑
+          if (layer === 0 || hasPhysicalSupport(box, tryX, tryZ, tryY)) {
+            return { x: tryX * SCALE, z: tryZ * SCALE, y: tryY * SCALE };
           }
         }
       }
     }
-    
-    // 精细搜索
-    for (let x = -halfW + boxHalfX; x <= halfW - boxHalfX; x += fineStep) {
-      for (let z = -halfL + boxHalfZ; z <= halfL - boxHalfZ; z += fineStep) {
-        if (stackY + boxHalfH > H) continue;
+  }
+  
+  // 粗搜索没找到，进行精细搜索
+  const fineStep = 50 / SCALE;
+  for (let x = -halfW + boxHalfX; x <= halfW - boxHalfX; x += fineStep) {
+    for (let z = -halfL + boxHalfZ; z <= halfL - boxHalfZ; z += fineStep) {
+      for (let layer = 0; layer < maxLayer; layer++) {
+        const tryY = boxHalfH + layer * (box.h / SCALE);
+        
+        if (tryY + boxHalfH > H) continue;
         
         const testBox = {
           id: -1, l: box.l, w: box.w, h: box.h, wt: box.wt, color: box.color,
-          x: x * SCALE, z: z * SCALE, y: stackY * SCALE,
+          x: x * SCALE, z: z * SCALE, y: tryY * SCALE,
           mesh: createBoxMesh({ l: box.l, w: box.w, h: box.h, wt: box.wt, color: box.color })
         };
-        testBox.mesh.position.set(x, stackY, z);
+        testBox.mesh.position.set(x, tryY, z);
         
         const hasCollision = checkBoxCollision(testBox);
         scene.remove(testBox.mesh);
         
         if (!hasCollision) {
-          if (hasPhysicalSupport(box, x, stackY, z)) {
-            return { x: x * SCALE, z: z * SCALE, y: stackY * SCALE };
+          if (layer === 0 || hasPhysicalSupport(box, x, z, tryY)) {
+            return { x: x * SCALE, z: z * SCALE, y: tryY * SCALE };
           }
         }
       }
