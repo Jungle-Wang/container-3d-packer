@@ -1270,8 +1270,9 @@ function createBoxMesh(box) {
   barMesh.position.set(-W / 2 + W * 0.15, 0, L / 2 + 0.01);
   group.add(barMesh);
 
-  // Place at container center
-  group.position.set(box.x / SCALE, H / 2, box.z / SCALE);
+  // Place at specified position (default to ground if y not specified)
+  const posY = box.y !== undefined ? box.y / SCALE : H / 2;
+  group.position.set(box.x / SCALE, posY, box.z / SCALE);
   return group;
 }
 
