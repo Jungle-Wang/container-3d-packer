@@ -88,11 +88,12 @@
   .preset-btn .preset-lbl { font-weight: 700; color: var(--text); font-size: 8px; }
   .preset-btn .preset-spec { display: block; font-size: 7px; color: var(--text2); }
 
-  .ctype-btn { width: 100%; background: var(--panel2); border: 2px solid var(--border); border-radius: 4px; padding: 3px 6px; color: var(--text); cursor: pointer; margin-bottom: 2px; text-align: left; transition: all 0.12s; font-size: 9px; }
+  .ctype-list { display: flex; gap: 6px; }
+  .ctype-btn { flex: 1; background: var(--panel2); border: 2px solid var(--border); border-radius: 4px; padding: 4px 6px; color: var(--text); cursor: pointer; text-align: center; transition: all 0.12s; font-size: 9px; }
   .ctype-btn:hover { border-color: var(--accent); }
   .ctype-btn.active { border-color: var(--accent); background: rgba(240,180,41,0.08); }
   .ctype-name { font-weight: 700; color: var(--accent); font-size: 9px; }
-  .ctype-spec { color: var(--text2); font-size: 8px; margin-top: 1px; }
+  .ctype-spec { color: var(--text2); font-size: 7px; margin-top: 2px; }
 
   .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; margin-bottom: 3px; }
   .form-group { display: flex; flex-direction: column; gap: 1px; }
@@ -1970,11 +1971,12 @@ function hideTooltip() {
 // ===================== CONTAINER SELECTOR =====================
 function renderCtypeList() {
   const el = document.getElementById('ctype-list');
+  el.className = 'ctype-list';
   el.innerHTML = CONTAINERS.map((c, i) => `
     <button class="ctype-btn ${i === containerIdx ? 'active' : ''}"
             id="ctype-${c.id}" onclick="selectContainer('${c.id}')">
-      <div class="ctype-name">${c.short} — ${c.name}</div>
-      <div class="ctype-spec">${c.iL}×${c.iW}×${c.iH}mm | MAX ${c.maxWt}kg</div>
+      <div class="ctype-name">${c.short}</div>
+      <div class="ctype-spec">${c.iL}×${c.iW}×${c.iH}mm</div>
     </button>
   `).join('');
 }
