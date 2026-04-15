@@ -1536,7 +1536,7 @@ function quickAddAndLoad() {
   }
 }
 
-// 为箱子寻找最佳放置位置（物理堆叠：必须落地或落在其他箱子上）
+// 为箱子寻找最佳放置位置（物理堆叠：先填满底层，再逐层向上）
 function findBestPosition(box) {
   const c = CONTAINERS[containerIdx];
   const halfW = c.iW / 2 / SCALE;
@@ -1553,7 +1553,7 @@ function findBestPosition(box) {
   const maxCol = Math.floor((c.iW - box.w) / Math.max(box.w, 50)) + 1;
   const maxRow = Math.floor((c.iL - box.l) / Math.max(box.l, 50)) + 1;
   
-  // 粗搜索：从后左角开始，逐行逐列
+  // ===== 第一步：尝试放在地面（Y = boxHalfH）=====
   for (let row = 0; row < maxRow; row++) {
     for (let col = 0; col < maxCol; col++) {
       const tryX = -halfW + boxHalfX + col * stepX;
@@ -1561,77 +1561,113 @@ function findBestPosition(box) {
       
       if (tryX + boxHalfX > halfW || tryZ + boxHalfZ > halfL) continue;
       
-      // 计算该XZ位置能放的最低Y（物理堆叠）
-      const bestY = findLowestValidY(box, tryX, tryZ, H, boxHalfH);
+      const groundY = boxHalfH;
       
-      if (bestY !== null) {
-        return { x: tryX * SCALE, z: tryZ * SCALE, y: bestY * SCALE };
+      // 检查地面位置是否有碰撞
+      const testBox = {
+        id: -1, l: box.l, w: box.w, h: box.h, wt: box.wt, color: box.color,
+        x: tryX * SCALE, z: tryZ * SCALE, y: groundY * SCALE,
+        mesh: createBoxMesh({ l: box.l, w: box.w, h: box.h, wt: box.wt, color: box.color })
+      };
+      testBox.mesh.position.set(tryX, groundY, tryZ);
+      
+      const hasCollision = checkBoxCollision(testBox);
+      scene.remove(testBox.mesh);
+      
+      if (!hasCollision) {
+        // 地面有空位，直接放
+        return { x: tryX * SCALE, z: tryZ * SCALE, y: groundY * SCALE };
       }
     }
   }
   
-  // 精细搜索
+  // 地面精细搜索
   const fineStep = 50 / SCALE;
   for (let x = -halfW + boxHalfX; x <= halfW - boxHalfX; x += fineStep) {
     for (let z = -halfL + boxHalfZ; z <= halfL - boxHalfZ; z += fineStep) {
-      const bestY = findLowestValidY(box, x, z, H, boxHalfH);
+      const groundY = boxHalfH;
       
-      if (bestY !== null) {
-        return { x: x * SCALE, z: z * SCALE, y: bestY * SCALE };
+      const testBox = {
+        id: -1, l: box.l, w: box.w, h: box.h, wt: box.wt, color: box.color,
+        x: x * SCALE, z: z * SCALE, y: groundY * SCALE,
+        mesh: createBoxMesh({ l: box.l, w: box.w, h: box.h, wt: box.wt, color: box.color })
+      };
+      testBox.mesh.position.set(x, groundY, z);
+      
+      const hasCollision = checkBoxCollision(testBox);
+      scene.remove(testBox.mesh);
+      
+      if (!hasCollision) {
+        return { x: x * SCALE, z: z * SCALE, y: groundY * SCALE };
       }
     }
   }
   
-  return null;
-}
-
-// 计算给定XZ位置能放置箱子的最低Y高度（物理堆叠）
-function findLowestValidY(box, x, z, containerH, boxHalfH) {
-  const boxW = box.w / SCALE;
-  const boxL = box.l / SCALE;
-  const boxH = box.h / SCALE;
-  
-  // 候选Y高度：地面(0) + 每个箱子的顶部
-  const candidateY = new Set();
-  candidateY.add(boxHalfH); // 地面高度（箱子中心）
-  
+  // ===== 第二步：地面满了，尝试堆叠 =====
+  // 收集所有可能的堆叠高度（每个已放置箱子的顶部）
+  const stackLevels = new Set();
   for (const b of placedBoxes) {
     const bTop = b.mesh.position.y + (b.h / SCALE) / 2;
-    const newY = bTop + boxHalfH; // 箱子放在b上面的中心高度
-    if (newY + boxHalfH <= containerH) {
-      candidateY.add(newY);
+    const stackY = bTop + boxHalfH;
+    if (stackY + boxHalfH <= H) {
+      stackLevels.add(stackY);
     }
   }
   
   // 按从低到高排序
-  const sortedY = Array.from(candidateY).sort((a, b) => a - b);
+  const sortedStackY = Array.from(stackLevels).sort((a, b) => a - b);
   
-  // 对每个候选Y，检查是否可以放置
-  for (const tryY of sortedY) {
-    if (tryY + boxHalfH > containerH) continue;
-    
-    // 检查该位置是否有碰撞
-    const testBox = {
-      id: -1, l: box.l, w: box.w, h: box.h, wt: box.wt, color: box.color,
-      x: x * SCALE, z: z * SCALE, y: tryY * SCALE,
-      mesh: createBoxMesh({ l: box.l, w: box.w, h: box.h, wt: box.wt, color: box.color })
-    };
-    testBox.mesh.position.set(x, tryY, z);
-    
-    const hasCollision = checkBoxCollision(testBox);
-    scene.remove(testBox.mesh);
-    
-    if (!hasCollision) {
-      // 找到了！但还要验证物理支撑：
-      // 如果不在地面，必须有箱子在下面支撑
-      if (tryY <= boxHalfH + 0.001) {
-        // 在地面上，OK
-        return tryY;
+  // 对每个堆叠高度，搜索可以放置的位置
+  for (const stackY of sortedStackY) {
+    // 粗搜索
+    for (let row = 0; row < maxRow; row++) {
+      for (let col = 0; col < maxCol; col++) {
+        const tryX = -halfW + boxHalfX + col * stepX;
+        const tryZ = -halfL + boxHalfZ + row * stepZ;
+        
+        if (tryX + boxHalfX > halfW || tryZ + boxHalfZ > halfL) continue;
+        if (stackY + boxHalfH > H) continue;
+        
+        // 检查该位置是否有碰撞
+        const testBox = {
+          id: -1, l: box.l, w: box.w, h: box.h, wt: box.wt, color: box.color,
+          x: tryX * SCALE, z: tryZ * SCALE, y: stackY * SCALE,
+          mesh: createBoxMesh({ l: box.l, w: box.w, h: box.h, wt: box.wt, color: box.color })
+        };
+        testBox.mesh.position.set(tryX, stackY, tryZ);
+        
+        const hasCollision = checkBoxCollision(testBox);
+        scene.remove(testBox.mesh);
+        
+        if (!hasCollision) {
+          // 无碰撞，检查是否有物理支撑
+          if (hasPhysicalSupport(box, tryX, tryZ, stackY)) {
+            return { x: tryX * SCALE, z: tryZ * SCALE, y: stackY * SCALE };
+          }
+        }
       }
-      
-      // 检查是否有足够的支撑面积
-      if (hasPhysicalSupport(box, x, z, tryY)) {
-        return tryY;
+    }
+    
+    // 精细搜索
+    for (let x = -halfW + boxHalfX; x <= halfW - boxHalfX; x += fineStep) {
+      for (let z = -halfL + boxHalfZ; z <= halfL - boxHalfZ; z += fineStep) {
+        if (stackY + boxHalfH > H) continue;
+        
+        const testBox = {
+          id: -1, l: box.l, w: box.w, h: box.h, wt: box.wt, color: box.color,
+          x: x * SCALE, z: z * SCALE, y: stackY * SCALE,
+          mesh: createBoxMesh({ l: box.l, w: box.w, h: box.h, wt: box.wt, color: box.color })
+        };
+        testBox.mesh.position.set(x, stackY, z);
+        
+        const hasCollision = checkBoxCollision(testBox);
+        scene.remove(testBox.mesh);
+        
+        if (!hasCollision) {
+          if (hasPhysicalSupport(box, x, stackY, z)) {
+            return { x: x * SCALE, z: z * SCALE, y: stackY * SCALE };
+          }
+        }
       }
     }
   }
