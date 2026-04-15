@@ -439,6 +439,41 @@ let hasMoved = false;
 let heightScrollBox = null;
 let heightScrollPlane = null;
 
+// 装箱位置队列，确保严格按顺序：Z(里→外) → X(左→右) → Y(下→上)
+let packingQueue = [];
+let packingQueueInitialized = false;
+
+// 初始化装箱位置队列
+function initPackingQueue(box) {
+  const c = CONTAINERS[containerIdx];
+  const stepX = Math.max(box.w, 50);
+  const stepZ = Math.max(box.l, 50);
+  const maxLayer = Math.floor(c.iH / box.h);
+
+  const maxCol = Math.floor((c.iW - box.w) / stepX) + 1;
+  const maxRow = Math.floor((c.iL - box.l) / stepZ) + 1;
+
+  packingQueue = [];
+
+  // 生成位置队列：Z(里→外) → X(左→右) → Y(下→上)
+  // 注意：row=0是里面(后门)，row增大往外走
+  for (let row = 0; row < maxRow; row++) {
+    for (let col = 0; col < maxCol; col++) {
+      for (let layer = 0; layer < maxLayer; layer++) {
+        const x = -(c.iW / 2) + box.w / 2 + col * stepX;
+        const z = -(c.iL / 2) + box.l / 2 + row * stepZ;
+        const y = layer * box.h + box.h / 2;
+
+        if (x + box.w / 2 <= c.iW / 2 && z + box.l / 2 <= c.iL / 2 && y + box.h / 2 <= c.iH) {
+          packingQueue.push({ x, y, z, row, col, layer });
+        }
+      }
+    }
+  }
+
+  packingQueueInitialized = true;
+}
+
 // ===================== INIT THREE =====================
 function initThree() {
   const viewer = document.getElementById('viewer');
@@ -1590,46 +1625,51 @@ function findBestPosition(box) {
   // 3. X排满后，Y往上堆，再从左到右排满
   // 4. 这一排（Z固定）装满后，Z往外走（往前门方向），开始第二排
 
-  for (let row = 0; row < maxRow; row++) {
-    const tryZ = -halfL + boxHalfZ + row * stepZ;
-    if (tryZ + boxHalfZ > halfL) continue;
+  // ===== 实际装箱逻辑：Z(里→外) → X(左→右) → Y(下→上) =====
+  // 策略：
+  // 1. 先在Z最里面（后门）放箱子
+  // 2. X从左到右排满这一排
+  // 3. X排满后，Y往上堆，X再从左到右排满
+  // 4. 这一排（Z固定）装满后，Z往外走（往前门方向），开始第二排
 
-    for (let layer = 0; layer < maxLayer; layer++) {
-      const targetY = layer * box.h / SCALE + boxHalfH;
-      if (targetY + boxHalfH > H) break;
+  // 如果队列未初始化或箱子尺寸变化，重新初始化
+  if (!packingQueueInitialized || packingQueue.length === 0) {
+    initPackingQueue(box);
+  }
 
-      for (let col = 0; col < maxCol; col++) {
-        const tryX = -halfW + boxHalfX + col * stepX;
-        if (tryX + boxHalfX > halfW) continue;
+  // 按顺序遍历位置队列，找到第一个能放的位置
+  for (let i = 0; i < packingQueue.length; i++) {
+    const pos = packingQueue[i];
+    const tryX = pos.x / SCALE;
+    const tryY = pos.y / SCALE;
+    const tryZ = pos.z / SCALE;
 
-        // 检查该位置是否可以放置
-        let hasCollision = false;
-        for (const b of placedBoxes) {
-          if (boxesOverlapAt(box, tryX, targetY, tryZ, b)) {
-            hasCollision = true;
-            break;
-          }
-        }
+    // 检查该位置是否可以放置
+    let hasCollision = false;
+    for (const b of placedBoxes) {
+      if (boxesOverlapAt(box, tryX, tryY, tryZ, b)) {
+        hasCollision = true;
+        break;
+      }
+    }
 
-        if (!hasCollision) {
-          // 地面层（layer=0）不需要支撑检查
-          // 上层需要检查是否有物理支撑
-          if (layer === 0 || hasPhysicalSupportFast(box, tryX, tryZ, targetY)) {
-            return { x: tryX * SCALE, z: tryZ * SCALE, y: targetY * SCALE };
-          }
-        }
+    if (!hasCollision) {
+      // 地面层（layer=0）不需要支撑检查
+      // 上层需要检查是否有物理支撑
+      if (pos.layer === 0 || hasPhysicalSupportFast(box, tryX, tryZ, tryY)) {
+        return { x: pos.x, y: pos.y, z: pos.z };
       }
     }
   }
 
-  // 粗搜索（更精细的步长）- 同样遵循从里到外、从下而上、从左到右
+  // 如果队列中没有找到位置，尝试粗搜索（更精细的步长）
   const fineStep = 50 / SCALE;
   for (let z = -halfL + boxHalfZ; z <= halfL - boxHalfZ; z += fineStep) {
-    for (let layer = 0; layer < maxLayer; layer++) {
-      const targetY = layer * box.h / SCALE + boxHalfH;
-      if (targetY + boxHalfH > H) break;
+    for (let x = -halfW + boxHalfX; x <= halfW - boxHalfX; x += fineStep) {
+      for (let layer = 0; layer < maxLayer; layer++) {
+        const targetY = layer * box.h / SCALE + boxHalfH;
+        if (targetY + boxHalfH > H) break;
 
-      for (let x = -halfW + boxHalfX; x <= halfW - boxHalfX; x += fineStep) {
         let hasCollision = false;
         for (const b of placedBoxes) {
           if (boxesOverlapAt(box, x, targetY, z, b)) {
@@ -2161,6 +2201,8 @@ function selectContainer(id) {
   placedBoxes = [];
   pendingBoxes = [];
   selectedBox = null;
+  packingQueue = [];
+  packingQueueInitialized = false;
   renderPendingList();
   containerIdx = CONTAINERS.findIndex(c => c.id === id);
   buildContainer(CONTAINERS[containerIdx]);
@@ -2184,6 +2226,8 @@ function clearAll() {
   placedBoxes = [];
   pendingBoxes = [];
   selectedBox = null;
+  packingQueue = [];
+  packingQueueInitialized = false;
   renderPendingList();
   updateAllStats();
   showToast('已清空', 'success');
