@@ -2140,9 +2140,13 @@ function updateTooltip(e, box) {
   const maxTop = cH;
   const fillPct = (topY / maxTop * 100).toFixed(0);
 
+  // 坐标显示：以集装箱后门（最里面）为原点 (0,0)
+  const c = CONTAINERS[containerIdx];
+  const displayX = box.x; // X不变，中心为0
+  const displayZ = -box.z + c.iL / 2; // Z反转，后门为0
   tt.innerHTML = `#${box.id} | ${box.l}×${box.w}×${box.h}mm<br>` +
     `重量: ${box.wt}kg | 颜色: ${box.color.name}<br>` +
-    `${(box.l*box.w*box.h/1e9).toFixed(3)}m³ | 位置:(${box.x.toFixed(0)},${box.z.toFixed(0)})mm`;
+    `${(box.l*box.w*box.h/1e9).toFixed(3)}m³ | 位置:(${displayX.toFixed(0)},${displayZ.toFixed(0)})mm`;
 
   if (e) {
     tt.style.left = (e.clientX + 12) + 'px';
@@ -2220,7 +2224,10 @@ function exportData() {
   placedBoxes.forEach((b, i) => {
     const botY = (b.mesh.position.y * SCALE - b.h/2).toFixed(0);
     const topY = (b.mesh.position.y * SCALE + b.h/2).toFixed(0);
-    text += `${i+1}. ${b.l}×${b.w}×${b.h}mm | ${b.wt}kg | 颜色:${b.color.name} | 位置:(${b.x.toFixed(0)},${b.z.toFixed(0)}) | Y:${botY}-${topY}mm\n`;
+    // 坐标显示：以集装箱后门（最里面）为原点 (0,0)
+    const displayX = b.x;
+    const displayZ = -b.z + c.iL / 2;
+    text += `${i+1}. ${b.l}×${b.w}×${b.h}mm | ${b.wt}kg | 颜色:${b.color.name} | 位置:(${displayX.toFixed(0)},${displayZ.toFixed(0)}) | Y:${botY}-${topY}mm\n`;
   });
   const blob = new Blob([text], { type: 'text/plain' });
   const a = document.createElement('a');
