@@ -697,14 +697,17 @@ function onMouseMove(e) {
       newZ = Math.max(-halfL + boxHalfZ, Math.min(halfL - boxHalfZ, newZ));
 
       const oldX = dragBox.mesh.position.x, oldZ = dragBox.mesh.position.z;
+      
+      // Test new position first
       dragBox.mesh.position.x = newX;
       dragBox.mesh.position.z = newZ;
       
       if (checkBoxCollision(dragBox)) {
-        // Collision detected - revert position
+        // Collision detected - revert to old position
         dragBox.mesh.position.x = oldX;
         dragBox.mesh.position.z = oldZ;
       } else {
+        // No collision - update position data
         updateBoxPosition(dragBox);
         updateAllStats();
         updateXYZPanel(dragBox);
@@ -1513,49 +1516,37 @@ function placeBoxDirectly(idx) {
   if (idx < 0 || idx >= pendingBoxes.length) return;
   const box = pendingBoxes[idx];
   
-  // Smart position finder - searches in a grid pattern from center
+  // Position finder - searches from back-left corner (like real container loading)
   const c = CONTAINERS[containerIdx];
   const halfW = c.iW / 2 / SCALE;
   const halfL = c.iL / 2 / SCALE;
   const boxHalfX = box.w / 2 / SCALE;
   const boxHalfZ = box.l / 2 / SCALE;
   
-  // Search parameters
-  const stepX = Math.max(box.w / SCALE, 100 / SCALE); // Step by box width or 100mm
-  const stepZ = Math.max(box.l / SCALE, 100 / SCALE); // Step by box length or 100mm
-  const maxStepsX = Math.ceil((halfW - boxHalfX) / stepX);
-  const maxStepsZ = Math.ceil((halfL - boxHalfZ) / stepZ);
+  // Start from back-left corner (-halfW, -halfL) and fill forward-right
+  // Grid search with box-sized steps
+  const stepX = box.w / SCALE;
+  const stepZ = box.l / SCALE;
   
-  let placed = false;
+  // Calculate number of positions to try
+  const maxCol = Math.floor((c.iW - box.w) / Math.max(box.w, 50)) + 1;
+  const maxRow = Math.floor((c.iL - box.l) / Math.max(box.l, 50)) + 1;
+  
   let bestPos = null;
-  let minDistance = Infinity;
   
-  // Spiral search from center outward
-  for (let radius = 0; radius <= Math.max(maxStepsX, maxStepsZ) && !placed; radius++) {
-    const positions = [];
-    
-    // Generate positions at this radius (square ring)
-    for (let dx = -radius; dx <= radius; dx++) {
-      for (let dz = -radius; dz <= radius; dz++) {
-        if (Math.abs(dx) === radius || Math.abs(dz) === radius) {
-          positions.push({ dx, dz });
-        }
-      }
-    }
-    // If radius is 0, just center
-    if (radius === 0) positions.push({ dx: 0, dz: 0 });
-    
-    // Try each position
-    for (const { dx, dz } of positions) {
-      const tryX = dx * stepX;
-      const tryZ = dz * stepZ;
+  // Search from back-left corner, row by row (like loading a real container)
+  for (let row = 0; row < maxRow && !bestPos; row++) {
+    for (let col = 0; col < maxCol && !bestPos; col++) {
+      // Start from back-left: -halfW + boxHalfX, -halfL + boxHalfZ
+      const tryX = -halfW + boxHalfX + col * stepX;
+      const tryZ = -halfL + boxHalfZ + row * stepZ;
       
       // Check bounds
-      if (Math.abs(tryX) + boxHalfX > halfW || Math.abs(tryZ) + boxHalfZ > halfL) continue;
+      if (tryX + boxHalfX > halfW || tryZ + boxHalfZ > halfL) continue;
       
-      // Create temporary box to test
+      // Create temporary box to test collision
       const testBox = {
-        id: -1, // Temporary ID
+        id: -1,
         l: box.l, w: box.w, h: box.h, wt: box.wt, color: box.color,
         x: tryX * SCALE,
         z: tryZ * SCALE,
@@ -1567,19 +1558,31 @@ function placeBoxDirectly(idx) {
       };
       
       if (!checkBoxCollision(testBox)) {
-        // Found valid position - prefer closer to center
-        const dist = Math.sqrt(tryX * tryX + tryZ * tryZ);
-        if (dist < minDistance) {
-          minDistance = dist;
-          bestPos = { x: tryX * SCALE, z: tryZ * SCALE };
-          // If at center or very close, use immediately
-          if (dist < 0.001) {
-            placed = true;
-            break;
-          }
-        }
+        bestPos = { x: tryX * SCALE, z: tryZ * SCALE };
       }
       scene.remove(testBox.mesh);
+    }
+  }
+  
+  // If no grid position found, try a finer search
+  if (!bestPos) {
+    const fineStep = 50 / SCALE; // 50mm steps
+    for (let x = -halfW + boxHalfX; x <= halfW - boxHalfX && !bestPos; x += fineStep) {
+      for (let z = -halfL + boxHalfZ; z <= halfL - boxHalfZ && !bestPos; z += fineStep) {
+        const testBox = {
+          id: -1,
+          l: box.l, w: box.w, h: box.h, wt: box.wt, color: box.color,
+          x: x * SCALE, z: z * SCALE, y: box.h / 2,
+          mesh: createBoxMesh({
+            l: box.l, w: box.w, h: box.h, wt: box.wt, color: box.color,
+            x: x * SCALE, z: z * SCALE, y: box.h / 2
+          })
+        };
+        if (!checkBoxCollision(testBox)) {
+          bestPos = { x: x * SCALE, z: z * SCALE };
+        }
+        scene.remove(testBox.mesh);
+      }
     }
   }
   
