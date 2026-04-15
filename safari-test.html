@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Safari Test</title>
+<style>
+body { margin: 0; background: #f0f4f8; font-family: Arial; }
+#viewer { width: 100vw; height: 100vh; }
+#debug { position: fixed; top: 10px; left: 10px; background: rgba(0,0,0,0.8); color: #0f0; padding: 10px; font-family: monospace; font-size: 12px; max-width: 80vw; z-index: 1000; }
+</style>
+</head>
+<body>
+<div id="debug">Loading...</div>
+<div id="viewer"></div>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script>
+const debug = document.getElementById('debug');
+function log(msg) {
+  console.log(msg);
+  debug.innerHTML += '<br>' + msg;
+}
+
+try {
+  log('START');
+  const viewer = document.getElementById('viewer');
+  log('Viewer: ' + viewer.clientWidth + 'x' + viewer.clientHeight);
+  
+  const scene = new THREE.Scene();
+  log('Scene created');
+  
+  const camera = new THREE.PerspectiveCamera(45, viewer.clientWidth/viewer.clientHeight, 0.1, 2000);
+  camera.position.set(20, 20, 30);
+  log('Camera created');
+  
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setSize(viewer.clientWidth, viewer.clientHeight);
+  viewer.appendChild(renderer.domElement);
+  log('Renderer created');
+  
+  // Container
+  const geometry = new THREE.BoxGeometry(12, 2.5, 12);
+  const material = new THREE.MeshStandardMaterial({ 
+    color: 0x111111, 
+    transparent: true, 
+    opacity: 0.3
+  });
+  const container = new THREE.Mesh(geometry, material);
+  container.position.y = 1.25;
+  scene.add(container);
+  log('Container added');
+  
+  // Light
+  scene.add(new THREE.AmbientLight(0xffffff, 1));
+  const sun = new THREE.DirectionalLight(0xffffff, 1);
+  sun.position.set(10, 20, 10);
+  scene.add(sun);
+  log('Lights added');
+  
+  // Ground
+  const ground = new THREE.Mesh(
+    new THREE.PlaneGeometry(100, 100),
+    new THREE.MeshStandardMaterial({ color: 0xf0f4f8 })
+  );
+  ground.rotation.x = -Math.PI/2;
+  scene.add(ground);
+  log('Ground added');
+  
+  function animate() {
+    requestAnimationFrame(animate);
+    container.rotation.y += 0.01;
+    renderer.render(scene, camera);
+  }
+  animate();
+  log('SUCCESS!');
+} catch(e) {
+  log('ERROR: ' + e.message);
+  console.error(e);
+}
+</script>
+</body>
+</html>
