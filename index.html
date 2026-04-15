@@ -701,6 +701,7 @@ function onMouseMove(e) {
       dragBox.mesh.position.z = newZ;
       
       if (checkBoxCollision(dragBox)) {
+        // Collision detected - revert position
         dragBox.mesh.position.x = oldX;
         dragBox.mesh.position.z = oldZ;
       } else {
@@ -1512,52 +1513,94 @@ function placeBoxDirectly(idx) {
   if (idx < 0 || idx >= pendingBoxes.length) return;
   const box = pendingBoxes[idx];
   
-  // Try to find a non-colliding position starting from center
+  // Smart position finder - searches in a grid pattern from center
   const c = CONTAINERS[containerIdx];
   const halfW = c.iW / 2 / SCALE;
   const halfL = c.iL / 2 / SCALE;
   const boxHalfX = box.w / 2 / SCALE;
   const boxHalfZ = box.l / 2 / SCALE;
   
-  // Start positions to try (center, then offset in grid pattern)
-  const tryPositions = [
-    { x: 0, z: 0 },
-    { x: 100/SCALE, z: 0 }, { x: -100/SCALE, z: 0 },
-    { x: 0, z: 100/SCALE }, { x: 0, z: -100/SCALE },
-    { x: 200/SCALE, z: 0 }, { x: -200/SCALE, z: 0 },
-    { x: 0, z: 200/SCALE }, { x: 0, z: -200/SCALE },
-    { x: 300/SCALE, z: 300/SCALE }, { x: -300/SCALE, z: -300/SCALE },
-  ];
+  // Search parameters
+  const stepX = Math.max(box.w / SCALE, 100 / SCALE); // Step by box width or 100mm
+  const stepZ = Math.max(box.l / SCALE, 100 / SCALE); // Step by box length or 100mm
+  const maxStepsX = Math.ceil((halfW - boxHalfX) / stepX);
+  const maxStepsZ = Math.ceil((halfL - boxHalfZ) / stepZ);
   
   let placed = false;
-  for (const pos of tryPositions) {
-    let tryX = Math.max(-halfW + boxHalfX, Math.min(halfW - boxHalfX, pos.x));
-    let tryZ = Math.max(-halfL + boxHalfZ, Math.min(halfL - boxHalfZ, pos.z));
+  let bestPos = null;
+  let minDistance = Infinity;
+  
+  // Spiral search from center outward
+  for (let radius = 0; radius <= Math.max(maxStepsX, maxStepsZ) && !placed; radius++) {
+    const positions = [];
     
-    box.x = tryX * SCALE;
-    box.z = tryZ * SCALE;
-    box.y = box.h / 2;
-    box.mesh = createBoxMesh(box);
+    // Generate positions at this radius (square ring)
+    for (let dx = -radius; dx <= radius; dx++) {
+      for (let dz = -radius; dz <= radius; dz++) {
+        if (Math.abs(dx) === radius || Math.abs(dz) === radius) {
+          positions.push({ dx, dz });
+        }
+      }
+    }
+    // If radius is 0, just center
+    if (radius === 0) positions.push({ dx: 0, dz: 0 });
     
-    if (!checkBoxCollision(box)) {
-      scene.add(box.mesh);
-      placedBoxes.push(box);
-      placed = true;
-      break;
-    } else {
-      scene.remove(box.mesh);
+    // Try each position
+    for (const { dx, dz } of positions) {
+      const tryX = dx * stepX;
+      const tryZ = dz * stepZ;
+      
+      // Check bounds
+      if (Math.abs(tryX) + boxHalfX > halfW || Math.abs(tryZ) + boxHalfZ > halfL) continue;
+      
+      // Create temporary box to test
+      const testBox = {
+        id: -1, // Temporary ID
+        l: box.l, w: box.w, h: box.h, wt: box.wt, color: box.color,
+        x: tryX * SCALE,
+        z: tryZ * SCALE,
+        y: box.h / 2,
+        mesh: createBoxMesh({
+          l: box.l, w: box.w, h: box.h, wt: box.wt, color: box.color,
+          x: tryX * SCALE, z: tryZ * SCALE, y: box.h / 2
+        })
+      };
+      
+      if (!checkBoxCollision(testBox)) {
+        // Found valid position - prefer closer to center
+        const dist = Math.sqrt(tryX * tryX + tryZ * tryZ);
+        if (dist < minDistance) {
+          minDistance = dist;
+          bestPos = { x: tryX * SCALE, z: tryZ * SCALE };
+          // If at center or very close, use immediately
+          if (dist < 0.001) {
+            placed = true;
+            break;
+          }
+        }
+      }
+      scene.remove(testBox.mesh);
     }
   }
   
-  if (!placed) {
+  if (!bestPos) {
     showToast('⚠ 找不到不重叠的位置，请手动拖拽放置', 'error');
     return;
   }
+  
+  // Place box at best position found
+  box.x = bestPos.x;
+  box.z = bestPos.z;
+  box.y = box.h / 2;
+  box.mesh = createBoxMesh(box);
+  scene.add(box.mesh);
+  placedBoxes.push(box);
   
   pendingBoxes.splice(idx, 1);
   renderPendingList();
   selectBox(box);
   updateAllStats();
+  document.getElementById('empty-hint').style.display = 'none';
   showToast(`✅ #${box.id} 已装载`, 'success');
 }
 
