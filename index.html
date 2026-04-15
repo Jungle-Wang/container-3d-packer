@@ -738,22 +738,9 @@ function onMouseMove(e) {
       // Shift+drag: move Y (height) based on vertical mouse movement
       const deltaY = (mouseDownPos.y - e.clientY) / SCALE * 2;
       const newY = dragBoxStartY + deltaY;
-      const bHalfH = dragBox.h / SCALE / 2;
-      const cH = CONTAINERS[containerIdx].iH / SCALE;
-      const clampedY = Math.max(bHalfH, Math.min(cH - bHalfH, newY));
       
-      // Create a test box to check collision without modifying the actual box
-      const testBox = {
-        id: dragBox.id,
-        l: dragBox.l, w: dragBox.w, h: dragBox.h, wt: dragBox.wt, color: dragBox.color,
-        x: dragBox.x,
-        z: dragBox.z,
-        y: dragBox.y,
-        mesh: { position: { x: dragBox.mesh.position.x, y: clampedY, z: dragBox.mesh.position.z } }
-      };
-      
-      if (!checkBoxCollision(testBox)) {
-        dragBox.mesh.position.y = clampedY;
+      // Use tryMoveBox to handle collision detection properly
+      if (tryMoveBox(dragBox, dragBox.mesh.position.x, newY, dragBox.mesh.position.z)) {
         updateBoxPosition(dragBox);
         updateAllStats();
         updateXYZPanel(dragBox);
@@ -774,26 +761,8 @@ function onMouseMove(e) {
       newX = Math.max(-halfW + boxHalfX, Math.min(halfW - boxHalfX, newX));
       newZ = Math.max(-halfL + boxHalfZ, Math.min(halfL - boxHalfZ, newZ));
 
-      const oldX = dragBox.mesh.position.x;
-      const oldZ = dragBox.mesh.position.z;
-      
-      // Create a test box to check collision without modifying the actual box
-      const testBox = {
-        id: dragBox.id,
-        l: dragBox.l, w: dragBox.w, h: dragBox.h, wt: dragBox.wt, color: dragBox.color,
-        x: newX * SCALE,
-        z: newZ * SCALE,
-        y: dragBox.y,
-        mesh: { position: { x: newX, y: dragBox.mesh.position.y, z: newZ } }
-      };
-      
-      if (checkBoxCollision(testBox)) {
-        // Collision detected - do not move
-        // Keep old position
-      } else {
-        // No collision - move to new position
-        dragBox.mesh.position.x = newX;
-        dragBox.mesh.position.z = newZ;
+      // Use tryMoveBox to handle collision detection properly
+      if (tryMoveBox(dragBox, newX, dragBox.mesh.position.y, newZ)) {
         updateBoxPosition(dragBox);
         updateAllStats();
         updateXYZPanel(dragBox);
