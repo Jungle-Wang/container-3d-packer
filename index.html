@@ -1981,6 +1981,7 @@ function renderCtypeList() {
 }
 
 function selectContainer(id) {
+  if (!scene) return; // Guard: Three.js not initialized yet
   placedBoxes.forEach(b => scene.remove(b.mesh));
   placedBoxes = [];
   pendingBoxes = [];
@@ -1990,7 +1991,8 @@ function selectContainer(id) {
   buildContainer(CONTAINERS[containerIdx]);
   updateAllStats();
   document.querySelectorAll('.ctype-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById('ctype-' + id).classList.add('active');
+  const btn = document.getElementById('ctype-' + id);
+  if (btn) btn.classList.add('active');
 }
 
 // ===================== UTILITY =====================
@@ -2100,4 +2102,3 @@ init();
 </script>
 </body>
 </html>
-// Cache bust: Thu Apr 16 01:47:06 WIB 2026
