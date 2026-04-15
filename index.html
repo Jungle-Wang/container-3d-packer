@@ -156,6 +156,7 @@
   .toast.show { transform: translateX(-50%) translateY(0); }
   .toast.success { border-color: var(--green); color: var(--green); }
   .toast.error { border-color: var(--red); color: var(--red); }
+  .toast.info { border-color: var(--accent); color: var(--accent); }
 
   .right-panel { background: var(--panel); border-left: 1px solid var(--border); overflow-y: auto; padding: 6px 10px; }
   .stat-block { background: var(--panel2); border: 1px solid var(--border); border-radius: 4px; padding: 5px 6px; margin-bottom: 5px; }
@@ -386,8 +387,11 @@
       </div>
     </div>
     <div class="xyz-divider"></div>
-    <div>
-      <button class="xyz-reset" onclick="resetBoxPosition()">📍 归零</button>
+    <div style="display:flex;flex-direction:column;gap:4px;align-items:center;">
+      <button class="xyz-reset" onclick="resetBoxPosition()">📍 归零 (R/0)</button>
+      <div style="font-size:8px;color:var(--text2);text-align:center;line-height:1.4;">
+        快捷键: X/X̄=左右 Z/Z̄=前后 Y/Ȳ=上下<br>方向键=XZ移动
+      </div>
     </div>
   </div>
 </div>
@@ -1931,6 +1935,60 @@ function animate() {
   renderer.render(scene, camera);
 }
 
+// ===================== KEYBOARD SHORTCUTS =====================
+function initKeyboardShortcuts() {
+  document.addEventListener('keydown', e => {
+    // Ignore if typing in input fields
+    if (e.target.tagName === 'INPUT') return;
+    
+    const key = e.key.toLowerCase();
+    const shift = e.shiftKey;
+    
+    switch(key) {
+      case 'x':
+        // X轴微调: X = +50mm, Shift+X = -50mm
+        e.preventDefault();
+        nudgeBox('x', shift ? -50 : 50);
+        showToast(`${shift ? '←' : '→'} X轴 ${shift ? '-' : '+'}50mm`, 'info');
+        break;
+      case 'z':
+        // Z轴微调: Z = +50mm, Shift+Z = -50mm
+        e.preventDefault();
+        nudgeBox('z', shift ? -50 : 50);
+        showToast(`${shift ? '↑' : '↓'} Z轴 ${shift ? '-' : '+'}50mm`, 'info');
+        break;
+      case 'y':
+        // Y轴微调: Y = +50mm, Shift+Y = -50mm
+        e.preventDefault();
+        nudgeBox('y', shift ? -50 : 50);
+        showToast(`${shift ? '↓' : '↑'} Y轴 ${shift ? '-' : '+'}50mm`, 'info');
+        break;
+      case 'r':
+      case '0':
+        // R 或 0 = 快速回正(归零)
+        e.preventDefault();
+        resetBoxPosition();
+        break;
+      case 'arrowleft':
+        e.preventDefault();
+        nudgeBox('x', -50);
+        break;
+      case 'arrowright':
+        e.preventDefault();
+        nudgeBox('x', 50);
+        break;
+      case 'arrowup':
+        e.preventDefault();
+        nudgeBox('z', -50);
+        break;
+      case 'arrowdown':
+        e.preventDefault();
+        nudgeBox('z', 50);
+        break;
+    }
+  });
+}
+
 // ===================== INIT =====================
 function init() {
   renderCtypeList();
@@ -1938,6 +1996,7 @@ function init() {
   renderPresets();
   renderPendingList();
   initThree();
+  initKeyboardShortcuts();
 
   const viewer = document.getElementById('viewer');
   viewer.addEventListener('dragover', onViewerDragOver);
