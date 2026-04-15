@@ -1581,8 +1581,7 @@ function findBestPosition(box) {
         const testBox = {
           id: -1, l: box.l, w: box.w, h: box.h, wt: box.wt, color: box.color,
           x: tryX * SCALE, z: tryZ * SCALE, y: tryY * SCALE,
-          mesh: createBoxMesh({ l: box.l, w: box.w, h: box.h, wt: box.wt, color: box.color,
-            x: tryX * SCALE, z: tryZ * SCALE, y: tryY * SCALE })
+          mesh: createBoxMesh({ l: box.l, w: box.w, h: box.h, wt: box.wt, color: box.color })
         };
         testBox.mesh.position.set(tryX, tryY, tryZ);
         
@@ -1606,8 +1605,7 @@ function findBestPosition(box) {
         const testBox = {
           id: -1, l: box.l, w: box.w, h: box.h, wt: box.wt, color: box.color,
           x: x * SCALE, z: z * SCALE, y: tryY * SCALE,
-          mesh: createBoxMesh({ l: box.l, w: box.w, h: box.h, wt: box.wt, color: box.color,
-            x: x * SCALE, z: z * SCALE, y: tryY * SCALE })
+          mesh: createBoxMesh({ l: box.l, w: box.w, h: box.h, wt: box.wt, color: box.color })
         };
         testBox.mesh.position.set(x, tryY, z);
         
