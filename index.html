@@ -2060,17 +2060,8 @@ function applyPreset(idx) {
 }
 
 function renderColorPicker() {
-  const el = document.getElementById('color-row');
-  el.innerHTML = COLORS.map((c, i) => `
-    <div class="color-dot ${i === 0 ? 'sel' : ''}"
-         style="background:${c.hex}" title="${c.name}"
-         onclick="selectColor(${i})" id="cd-${i}"></div>
-  `).join('');
-}
-
-function selectColor(i) {
-  selectedColor = COLORS[i];
-  document.querySelectorAll('.color-dot').forEach((d, j) => d.classList.toggle('sel', j === i));
+  // Color picker is now a <select> element, no need to render dots
+  // This function is kept for compatibility but does nothing
 }
 
 // ===================== ANIMATE =====================
