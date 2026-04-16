@@ -2155,9 +2155,9 @@ function updateTooltip(e, box) {
   const maxTop = cH;
   const fillPct = (topY / maxTop * 100).toFixed(0);
 
-  // 坐标显示：以集装箱后门（最里面）为原点 (0,0)
-  const displayX = box.x; // X不变，中心为0
-  const displayZ = -box.z + c.iL / 2; // Z反转，后门为0
+  // 坐标显示：以集装箱后门（最里面）左边为原点 (0,0)
+  const displayX = box.x + c.iW / 2; // X：左边=0，右边=iW
+  const displayZ = -box.z + c.iL / 2; // Z反转，后门=0，前门=iL
   tt.innerHTML = `#${box.id} | ${box.l}×${box.w}×${box.h}mm<br>` +
     `重量: ${box.wt}kg | 颜色: ${box.color.name}<br>` +
     `${(box.l*box.w*box.h/1e9).toFixed(3)}m³ | 位置:(${displayX.toFixed(0)},${displayZ.toFixed(0)})mm`;
@@ -2243,8 +2243,8 @@ function exportData() {
     const botY = (b.mesh.position.y * SCALE - b.h/2).toFixed(0);
     const topY = (b.mesh.position.y * SCALE + b.h/2).toFixed(0);
     // 坐标显示：以集装箱后门（最里面）为原点 (0,0)
-    const displayX = b.x;
-    const displayZ = -b.z + c.iL / 2;
+    const displayX = b.x + c.iW / 2; // X：左边=0，右边=iW
+    const displayZ = -b.z + c.iL / 2; // Z反转，后门=0，前门=iL
     text += `${i+1}. ${b.l}×${b.w}×${b.h}mm | ${b.wt}kg | 颜色:${b.color.name} | 位置:(${displayX.toFixed(0)},${displayZ.toFixed(0)}) | Y:${botY}-${topY}mm\n`;
   });
   const blob = new Blob([text], { type: 'text/plain' });
