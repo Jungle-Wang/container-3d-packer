@@ -3,20 +3,20 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>集装箱3D装载游戏 | Container 3D Packer v24</title>
+<title>集装箱3D装载游戏 v26 | Container 3D Packer</title>
 <script>
 window.onerror = function(msg, url, line, col, err) {
-  var stack = err && err.stack ? err.stack : 'No stack available';
-  alert('ERROR DETAILS:\n' +
-    'Message: ' + msg + '\n' +
-    'Line: ' + line + '\n' +
-    'URL: ' + url + '\n' +
-    'Stack:\n' + stack);
-  console.error('FULL ERROR:', err);
-  return false;
+  var msgStr = String(msg || 'unknown error');
+  var info = 'ERROR:\n' + msgStr + '\n\nLine: ' + line + '\nURL: ' + url;
+  if (err && err.stack) {
+    info += '\n\nStack:\n' + err.stack;
+  }
+  alert(info);
+  console.error('ERROR:', msgStr, 'at line', line, err);
+  return true;
 };
 window.addEventListener('unhandledrejection', function(e) {
-  alert('Promise Error: ' + (e.reason ? e.reason.message || e.reason : 'unknown'));
+  alert('Promise Error: ' + (e.reason ? String(e.reason) : 'unknown'));
   console.error('Promise rejection:', e.reason);
 });
 </script>
