@@ -3,2307 +3,1349 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>集装箱3D装载游戏 | Container 3D Packer v10</title>
+<title>集装箱3D装载游戏 | Container 3D Packer v19</title>
 <style>
-  :root {
-    --bg: #0a0e14;
-    --panel: #111620;
-    --panel2: #1a2030;
-    --border: #2a3347;
-    --text: #e8eef5;
-    --text2: #7a8899;
-    --accent: #f0b429;
-    --accent2: #e85d04;
-    --green: #3fb950;
-    --red: #f85149;
-  }
-  * { margin: 0; padding: 0; box-sizing: border-box; }
+ :root {
+ --bg: #0a0e14;
+ --panel: #111620;
+ --panel2: #1a2030;
+ --border: #2a3347;
+ --text: #e8eef5;
+ --text2: #7a8899;
+ --accent: #f0b429;
+ --accent2: #e85d04;
+ --green: #3fb950;
+ --red: #f85149;
+ }
+ * { margin: 0; padding: 0; box-sizing: border-box; }
 
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'Segoe UI', 'Noto Sans SC', sans-serif;
-    overflow: hidden;
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
-    user-select: none;
-  }
+ body {
+ background: var(--bg);
+ color: var(--text);
+ font-family: 'Segoe UI', 'Noto Sans SC', sans-serif;
+ overflow: hidden;
+ height: 100vh;
+ display: flex;
+ flex-direction: column;
+ user-select: none;
+ }
 
-  header {
-    background: var(--panel);
-    border-bottom: 2px solid var(--accent);
-    padding: 3px 10px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    z-index: 10;
-    flex-shrink: 0;
-    height: 32px;
-  }
-  .logo {
-    font-family: 'Courier New', monospace;
-    font-size: 12px;
-    font-weight: 700;
-    color: var(--accent);
-    white-space: nowrap;
-    letter-spacing: -0.5px;
-  }
-  .logo span { color: var(--text2); font-weight: 400; font-size: 9px; margin-left: 3px; }
-  .header-stats { display: flex; gap: 10px; flex: 1; justify-content: center; }
-  .hstat { display: flex; flex-direction: column; align-items: center; min-width: 48px; }
-  .hstat-val { font-family: 'Courier New', monospace; font-size: 12px; font-weight: 700; color: var(--accent); }
-  .hstat-lbl { font-size: 7px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; }
-  .header-actions { display: flex; gap: 3px; }
-  .btn { font-size: 9px; font-weight: 600; padding: 3px 7px; border: none; border-radius: 3px; cursor: pointer; transition: all 0.12s; }
-  .btn-primary { background: var(--accent); color: #000; }
-  .btn-primary:hover { background: #f7c948; }
-  .btn-danger { background: var(--red); color: #fff; }
-  .btn-danger:hover { background: #ff6b61; }
-  .btn-secondary { background: var(--panel2); color: var(--text); border: 1px solid var(--border); }
-  .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+ header {
+ background: var(--panel);
+ border-bottom: 2px solid var(--accent);
+ padding: 3px 10px;
+ display: flex;
+ align-items: center;
+ gap: 8px;
+ z-index: 10;
+ flex-shrink: 0;
+ height: 32px;
+ }
+ .logo {
+ font-family: 'Courier New', monospace;
+ font-size: 12px;
+ font-weight: 700;
+ color: var(--accent);
+ white-space: nowrap;
+ letter-spacing: -0.5px;
+ }
+ .logo span { color: var(--text); font-weight: 400; }
+ .logo small { font-size: 10px; color: var(--text2); margin-left: 8px; }
 
-  /* ===== LAYOUT: top 25% bar + bottom 75% full-bleed 3D ===== */
-  .main { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
+ .header-stats {
+ margin-left: auto;
+ display: flex;
+ gap: 15px;
+ font-size: 11px;
+ color: var(--text2);
+ }
+ .header-stats div { display: flex; align-items: center; gap: 4px; }
+ .header-stats b { color: var(--accent); }
 
-  .top-bar {
-    height: 25vh;
-    min-height: 180px;
-    max-height: 260px;
-    background: var(--panel);
-    border-bottom: 1px solid var(--border);
-    display: grid;
-    grid-template-columns: 320px 1fr 280px;
-    overflow: hidden;
-    flex-shrink: 0;
-    z-index: 5;
-  }
+ main { flex: 1; display: flex; min-height: 0; }
 
-  .left-panel { overflow-y: auto; padding: 6px 10px; border-right: 1px solid var(--border); }
-  .sec-title { font-size: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text2); margin-bottom: 4px; padding-bottom: 2px; border-bottom: 1px solid var(--border); }
+ /* Left panel: pending list */
+ .left-panel {
+ width: 200px;
+ background: var(--panel);
+ border-right: 1px solid var(--border);
+ display: flex;
+ flex-direction: column;
+ flex-shrink: 0;
+ }
+ .panel-header {
+ padding: 8px 10px;
+ font-size: 11px;
+ font-weight: 600;
+ color: var(--text2);
+ border-bottom: 1px solid var(--border);
+ text-transform: uppercase;
+ letter-spacing: 0.5px;
+ }
+ .pending-list {
+ flex: 1;
+ overflow-y: auto;
+ padding: 5px;
+ }
+ .pending-item {
+ background: var(--panel2);
+ border: 1px solid var(--border);
+ border-radius: 4px;
+ padding: 6px 8px;
+ margin-bottom: 5px;
+ cursor: grab;
+ font-size: 11px;
+ }
+ .pending-item:hover { border-color: var(--accent); }
+ .pending-item .dim { color: var(--text2); font-size: 10px; }
+ .pending-item .color-dot {
+ width: 10px; height: 10px; border-radius: 50%;
+ display: inline-block; vertical-align: middle; margin-right: 4px;
+ }
 
-  .presets { display: flex; flex-wrap: wrap; gap: 3px; margin-bottom: 4px; }
-  .preset-btn { background: var(--panel2); border: 1px solid var(--border); border-radius: 3px; color: var(--text2); font-size: 8px; font-family: 'Courier New', monospace; padding: 2px 5px; cursor: pointer; transition: all 0.12s; white-space: nowrap; }
-  .preset-btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(240,180,41,0.08); }
-  .preset-btn .preset-lbl { font-weight: 700; color: var(--text); font-size: 8px; }
-  .preset-btn .preset-spec { display: block; font-size: 7px; color: var(--text2); }
+ /* Center panel: 3D viewer */
+ .center-panel {
+ flex: 1;
+ display: flex;
+ flex-direction: column;
+ min-width: 0;
+ position: relative;
+ }
 
-  .ctype-list { display: flex; gap: 6px; }
-  .ctype-btn { flex: 1; background: var(--panel2); border: 2px solid var(--border); border-radius: 4px; padding: 4px 6px; color: var(--text); cursor: pointer; text-align: center; transition: all 0.12s; font-size: 9px; }
-  .ctype-btn:hover { border-color: var(--accent); }
-  .ctype-btn.active { border-color: var(--accent); background: rgba(240,180,41,0.08); }
-  .ctype-name { font-weight: 700; color: var(--accent); font-size: 9px; }
-  .ctype-spec { color: var(--text2); font-size: 7px; margin-top: 2px; }
+ /* Quick add form */
+ .quick-add {
+ background: var(--panel);
+ border-bottom: 1px solid var(--border);
+ padding: 8px 10px;
+ display: flex;
+ flex-wrap: wrap;
+ gap: 6px;
+ align-items: center;
+ }
+ .quick-add label { font-size: 10px; color: var(--text2); margin-right: 2px; }
+ .quick-add input {
+ width: 50px;
+ padding: 3px 5px;
+ background: var(--panel2);
+ border: 1px solid var(--border);
+ border-radius: 3px;
+ color: var(--text);
+ font-size: 11px;
+ }
+ .quick-add input:focus { outline: none; border-color: var(--accent); }
+ .quick-add button {
+ padding: 4px 10px;
+ background: var(--accent);
+ border: none;
+ border-radius: 3px;
+ color: #000;
+ font-size: 11px;
+ font-weight: 600;
+ cursor: pointer;
+ }
+ .quick-add button:hover { background: #d9a325; }
+ .quick-add button.secondary {
+ background: var(--panel2);
+ color: var(--text);
+ border: 1px solid var(--border);
+ }
+ .quick-add button.secondary:hover { border-color: var(--accent); }
+ .quick-add select {
+ padding: 3px 5px;
+ background: var(--panel2);
+ border: 1px solid var(--border);
+ border-radius: 3px;
+ color: var(--text);
+ font-size: 11px;
+ }
 
-  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; margin-bottom: 3px; }
-  .form-group { display: flex; flex-direction: column; gap: 1px; }
-  .form-label { font-size: 7px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; }
-  .form-input { background: var(--panel2); border: 1px solid var(--border); border-radius: 3px; color: var(--text); font-family: 'Courier New', monospace; font-size: 10px; padding: 3px 5px; width: 100%; }
-  .form-input:focus { outline: none; border-color: var(--accent); }
-  .color-row { display: flex; gap: 3px; flex-wrap: wrap; margin-top: 1px; }
-  .color-dot { width: 16px; height: 16px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; transition: all 0.12s; }
-  .color-dot:hover { transform: scale(1.15); }
-  .color-dot.sel { border-color: #fff; box-shadow: 0 0 0 1px var(--accent); }
-  .add-btn { width: 100%; margin-top: 3px; padding: 4px; font-size: 10px; font-weight: 700; background: var(--accent); color: #000; border: none; border-radius: 4px; cursor: pointer; }
-  .add-btn:hover { background: #f7c948; }
+ /* Container type buttons */
+ .ctype-list {
+ display: flex;
+ gap: 5px;
+ padding: 5px 10px;
+ background: var(--panel);
+ border-bottom: 1px solid var(--border);
+ }
+ .ctype-btn {
+ padding: 5px 10px;
+ background: var(--panel2);
+ border: 1px solid var(--border);
+ border-radius: 4px;
+ color: var(--text);
+ cursor: pointer;
+ text-align: left;
+ }
+ .ctype-btn:hover { border-color: var(--accent); }
+ .ctype-btn.active { border-color: var(--accent); background: rgba(240, 180, 41, 0.1); }
+ .ctype-btn .ctype-name { font-size: 12px; font-weight: 600; }
+ .ctype-btn .ctype-spec { font-size: 9px; color: var(--text2); margin-top: 2px; }
 
-  .pending-item { background: var(--panel2); border: 1px solid var(--border); border-radius: 3px; padding: 2px 5px; display: flex; align-items: center; gap: 3px; margin-bottom: 2px; cursor: grab; font-size: 9px; transition: all 0.12s; }
-  .pending-item:hover { border-color: var(--accent); transform: translateX(1px); }
-  .pending-item:active { cursor: grabbing; }
-  .pi-color { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
-  .pi-info { flex: 1; font-family: 'Courier New', monospace; font-size: 8px; color: var(--text2); }
-  .pi-info strong { color: var(--text); }
-  .pi-del { background: none; border: none; color: var(--text2); cursor: pointer; font-size: 10px; padding: 0 2px; }
+ #viewer {
+ flex: 1;
+ position: relative;
+ background: linear-gradient(180deg, #0d1218 0%, #151d28 100%);
+ }
+ #three-canvas { position: absolute; inset: 0; width: 100% !important; height: 100% !important; }
+ .viewer-hint {
+ position: absolute;
+ bottom: 10px;
+ left: 50%;
+ transform: translateX(-50%);
+ font-size: 10px;
+ color: var(--text2);
+ opacity: 0.6;
+ pointer-events: none;
+ }
 
-  /* XYZ control panel */
-  .xyz-panel {
-    position: absolute;
-    bottom: 70px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(17,22,32,0.92);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 10px 14px;
-    display: none;
-    gap: 10px;
-    align-items: center;
-    z-index: 20;
-    backdrop-filter: blur(8px);
-  }
-  .xyz-panel.show { display: flex; }
-  .xyz-group { display: flex; flex-direction: column; align-items: center; gap: 3px; }
-  .xyz-label { font-size: 9px; font-weight: 700; color: var(--text2); letter-spacing: 1px; }
-  .xyz-val { font-family: 'Courier New', monospace; font-size: 11px; color: var(--accent); min-width: 50px; text-align: center; }
-  .xyz-btns { display: flex; gap: 3px; }
-  .xyz-btn { background: var(--panel2); border: 1px solid var(--border); border-radius: 4px; color: var(--text); font-size: 13px; font-weight: 700; width: 26px; height: 26px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.1s; }
-  .xyz-btn:hover { border-color: var(--accent); color: var(--accent); }
-  .xyz-btn:active { background: var(--accent); color: #000; }
-  .xyz-reset { background: var(--red); border: 1px solid var(--red); border-radius: 4px; color: #fff; font-size: 10px; font-weight: 700; padding: 5px 10px; cursor: pointer; white-space: nowrap; transition: all 0.1s; }
-  .xyz-reset:hover { background: #ff6b61; }
-  .xyz-divider { width: 1px; height: 40px; background: var(--border); }
-  .xyz-height-hint { font-size: 9px; color: var(--text2); text-align: center; line-height: 1.3; max-width: 90px; }
-  .pi-del:hover { color: var(--red); }
+ /* Right panel: stats */
+ .right-panel {
+ width: 200px;
+ background: var(--panel);
+ border-left: 1px solid var(--border);
+ display: flex;
+ flex-direction: column;
+ flex-shrink: 0;
+ }
+ .stats-grid {
+ padding: 10px;
+ display: grid;
+ grid-template-columns: 1fr 1fr;
+ gap: 8px;
+ }
+ .stat-box {
+ background: var(--panel2);
+ border-radius: 4px;
+ padding: 8px;
+ text-align: center;
+ }
+ .stat-box.full { grid-column: 1 / -1; }
+ .stat-label { font-size: 9px; color: var(--text2); text-transform: uppercase; }
+ .stat-value { font-size: 14px; font-weight: 600; color: var(--accent); margin-top: 2px; }
+ .stat-value.green { color: var(--green); }
 
-  #viewer { position: relative; overflow: hidden; background: #f0f4f8; flex: 1; width: 100%; }
-  #three-canvas { position: absolute; inset: 0; width: 100% !important; height: 100% !important; }
+ /* XYZ Panel */
+ .xyz-panel {
+ padding: 10px;
+ border-top: 1px solid var(--border);
+ }
+ .xyz-panel h4 {
+ font-size: 10px;
+ color: var(--text2);
+ margin-bottom: 8px;
+ text-transform: uppercase;
+ }
+ .xyz-row {
+ display: flex;
+ align-items: center;
+ gap: 5px;
+ margin-bottom: 5px;
+ }
+ .xyz-row label { width: 20px; font-size: 11px; font-weight: 600; color: var(--accent); }
+ .xyz-row input {
+ flex: 1;
+ padding: 3px 5px;
+ background: var(--panel2);
+ border: 1px solid var(--border);
+ border-radius: 3px;
+ color: var(--text);
+ font-size: 11px;
+ }
+ .xyz-row input:focus { outline: none; border-color: var(--accent); }
+ .xyz-row button {
+ padding: 3px 6px;
+ background: var(--panel2);
+ border: 1px solid var(--border);
+ border-radius: 3px;
+ color: var(--text);
+ font-size: 10px;
+ cursor: pointer;
+ }
+ .xyz-row button:hover { border-color: var(--accent); }
 
-  .cam-hint { position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.6); color: var(--text2); font-size: 10px; padding: 5px 14px; border-radius: 20px; pointer-events: none; z-index: 5; white-space: nowrap; }
-  .key-hint { display: inline-block; background: rgba(240,180,41,0.2); border: 1px solid rgba(240,180,41,0.4); border-radius: 3px; padding: 0 4px; font-size: 9px; color: var(--accent); margin: 0 1px; }
+ /* Toast */
+ #toast {
+ position: fixed;
+ bottom: 20px;
+ left: 50%;
+ transform: translateX(-50%) translateY(100px);
+ padding: 8px 16px;
+ background: var(--panel);
+ border: 1px solid var(--border);
+ border-radius: 4px;
+ font-size: 12px;
+ opacity: 0;
+ transition: all 0.3s;
+ z-index: 100;
+ }
+ #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+ #toast.success { border-color: var(--green); color: var(--green); }
+ #toast.warning { border-color: var(--accent); color: var(--accent); }
+ #toast.error { border-color: var(--red); color: var(--red); }
 
-  #tooltip { position: fixed; background: rgba(0,0,0,0.88); border: 1px solid var(--border); border-radius: 5px; padding: 6px 10px; font-family: 'Courier New', monospace; font-size: 11px; color: var(--text); pointer-events: none; z-index: 9999; display: none; white-space: nowrap; }
+ /* Tooltip */
+ #tooltip {
+ position: fixed;
+ background: var(--panel);
+ border: 1px solid var(--border);
+ padding: 6px 10px;
+ border-radius: 4px;
+ font-size: 10px;
+ pointer-events: none;
+ opacity: 0;
+ transition: opacity 0.15s;
+ z-index: 100;
+ max-width: 200px;
+ }
+ #tooltip.show { opacity: 1; }
+ #tooltip .tip-title { font-weight: 600; color: var(--accent); margin-bottom: 3px; }
 
-  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(60px); background: var(--panel2); border: 1px solid var(--border); border-radius: 8px; padding: 8px 18px; font-size: 12px; color: var(--text); z-index: 9999; transition: transform 0.25s ease; }
-  .toast.show { transform: translateX(-50%) translateY(0); }
-  .toast.success { border-color: var(--green); color: var(--green); }
-  .toast.error { border-color: var(--red); color: var(--red); }
-  .toast.info { border-color: var(--accent); color: var(--accent); }
-  .toast.warning { border-color: #fb8c00; color: #fb8c00; }
+ /* Scrollbar */
+ ::-webkit-scrollbar { width: 6px; }
+ ::-webkit-scrollbar-track { background: var(--panel); }
+ ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+ ::-webkit-scrollbar-thumb:hover { background: var(--text2); }
 
-  .right-panel { background: var(--panel); border-left: 1px solid var(--border); overflow-y: auto; padding: 6px 10px; }
-  .stat-block { background: var(--panel2); border: 1px solid var(--border); border-radius: 4px; padding: 5px 6px; margin-bottom: 5px; }
-  .sb-title { font-size: 7px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--text2); margin-bottom: 4px; }
-  .sr { display: flex; justify-content: space-between; align-items: center; padding: 1px 0; font-size: 9px; border-bottom: 1px solid rgba(42,51,71,0.4); }
-  .sr:last-child { border-bottom: none; }
-  .sr .lbl { color: var(--text2); }
-  .sr .val { font-family: 'Courier New', monospace; font-weight: 600; color: var(--text); }
-  .sr .val.highlight { color: var(--accent); font-size: 11px; }
-  .sr .val.green { color: var(--green); }
-  .sr .val.red { color: var(--red); }
-  .sr .val.yellow { color: var(--accent); }
-  .pbar { height: 4px; background: var(--panel); border-radius: 2px; overflow: hidden; margin-bottom: 4px; }
-  .pfill { height: 100%; border-radius: 2px; background: linear-gradient(90deg, var(--green), var(--accent)); transition: width 0.3s; }
-  .pfill.warn { background: linear-gradient(90deg, var(--accent2), var(--red)); }
-  .plabel { display: flex; justify-content: space-between; font-size: 8px; color: var(--text2); margin-bottom: 2px; }
-
-  .cg { display: flex; align-items: center; gap: 4px; padding: 3px 4px; background: var(--panel); border-radius: 3px; margin-bottom: 2px; font-size: 9px; }
-  .cg-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
-  .cg-info { flex: 1; font-family: 'Courier New', monospace; font-size: 8px; color: var(--text2); }
-  .cg-info strong { color: var(--text); }
-
-  /* Stacking layer row */
-  .layer-row { display: flex; align-items: center; gap: 4px; padding: 2px 4px; background: var(--panel); border-radius: 3px; margin-bottom: 2px; font-size: 8px; }
-  .layer-num { font-family: 'Courier New', monospace; font-weight: 700; color: var(--accent); min-width: 28px; font-size: 8px; }
-  .layer-bar { flex: 1; height: 6px; background: var(--panel2); border-radius: 3px; overflow: hidden; }
-  .layer-fill { height: 100%; border-radius: 3px; transition: width 0.3s; }
-  .layer-count { font-family: 'Courier New', monospace; font-size: 8px; color: var(--text2); min-width: 30px; text-align: right; }
-  .layer-vol { font-family: 'Courier New', monospace; font-size: 8px; color: var(--text2); min-width: 44px; text-align: right; }
-
-  ::-webkit-scrollbar { width: 5px; }
-  ::-webkit-scrollbar-track { background: var(--panel); }
-  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-
-  .empty-hint { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: var(--text2); font-size: 13px; pointer-events: none; z-index: 2; }
-  .empty-hint .big { font-size: 48px; display: block; margin-bottom: 12px; opacity: 0.2; }
-
-  .overflow-warn { background: rgba(248,81,73,0.12); border: 1px solid var(--red); border-radius: 5px; padding: 7px 10px; font-size: 10px; color: var(--red); display: none; align-items: center; gap: 5px; margin-top: 8px; }
+ .empty-hint {
+ padding: 20px;
+ text-align: center;
+ color: var(--text2);
+ font-size: 11px;
+ }
 </style>
 </head>
 <body>
-
 <header>
-  <div class="logo">📦 CONTAINER<span>3D PACKER</span></div>
-  <div class="header-stats">
-    <div class="hstat"><div class="hstat-val" id="h-total">0</div><div class="hstat-lbl">总箱数</div></div>
-    <div class="hstat"><div class="hstat-val" id="h-placed">0</div><div class="hstat-lbl">已装载</div></div>
-    <div class="hstat"><div class="hstat-val" id="h-weight">0<span style="font-size:7px">kg</span></div><div class="hstat-lbl">总重量</div></div>
-    <div class="hstat"><div class="hstat-val" id="h-volume">0<span style="font-size:7px">m³</span></div><div class="hstat-lbl">总体积</div></div>
-    <div class="hstat"><div class="hstat-val" id="h-usage">0<span style="font-size:7px">%</span></div><div class="hstat-lbl">利用率</div></div>
-    <div class="hstat"><div class="hstat-val" id="h-contWt">0<span style="font-size:7px">kg</span></div><div class="hstat-lbl">箱内重量</div></div>
-    <div class="hstat"><div class="hstat-val" id="h-maxZ">0<span style="font-size:7px">mm</span></div><div class="hstat-lbl">最高层</div></div>
-  </div>
-  <div class="header-actions">
-    <button class="btn btn-secondary" onclick="exportData()">📤 导出</button>
-    <button class="btn btn-danger" onclick="clearAll()">🗑 清空</button>
-  </div>
+ <div class="logo">CONTAINER<span>3D</span> <small>v19</small></div>
+ <div class="header-stats">
+ <div>📦 <b id="h-placed">0</b>箱</div>
+ <div>📦 待装 <b id="h-pending">0</b>箱</div>
+ <div>📐 <b id="h-vol">0.00</b>m³</div>
+ <div>⚖️ <b id="h-wt">0</b>kg</div>
+ </div>
 </header>
+<main>
+ <!-- Left: Pending List -->
+ <div class="left-panel">
+ <div class="panel-header">📦 待装箱 (<span id="pending-count">0</span>)</div>
+ <div class="pending-list" id="pending-list">
+ <div class="empty-hint" id="empty-hint">添加箱子开始装箱</div>
+ </div>
+ </div>
 
-<!-- TOP 20% CONTROL BAR: left(纸箱) | center placeholder | right(统计) -->
-<div class="top-bar">
-  <div class="left-panel">
-    <div class="sec-title">📋 待装载纸箱 <span id="pcount" style="color:var(--accent)">(0)</span></div>
-    <div style="font-size:7px;color:var(--text2);margin-bottom:3px;">双击放入集装箱</div>
-    <div id="pending-list" style="margin-top:3px"></div>
-  </div>
+ <!-- Center: 3D Viewer -->
+ <div class="center-panel">
+ <div class="ctype-list" id="ctype-list"></div>
+ <div class="quick-add">
+ <label>L</label><input type="number" id="quick-l" value="600" min="50" max="3000">
+ <label>W</label><input type="number" id="quick-w" value="400" min="50" max="3000">
+ <label>H</label><input type="number" id="quick-h" value="400" min="50" max="3000">
+ <label>kg</label><input type="number" id="quick-wt" value="10" min="0.1" max="1000">
+ <label>数量</label><input type="number" id="quick-qty" value="1" min="1" max="100">
+ <select id="quick-color">
+ <option value="#e85d04">橙色</option>
+ <option value="#3b82f6">蓝色</option>
+ <option value="#22c55e">绿色</option>
+ <option value="#f59e0b">黄色</option>
+ <option value="#ef4444">红色</option>
+ <option value="#8b5cf6">紫色</option>
+ <option value="#6b7280">灰色</option>
+ </select>
+ <button onclick="quickAdd()">添加</button>
+ <button class="secondary" onclick="quickAddAndLoad()">📦 直接装箱</button>
+ </div>
+ <div id="viewer">
+ <canvas id="three-canvas"></canvas>
+ <div class="viewer-hint">左键拖箱 · 右键旋转 · 滚轮缩放 · 双击删除</div>
+ </div>
+ </div>
 
-  <!-- center: quick add + container selector + direct load -->
-  <div style="background:var(--panel2);border-left:1px solid var(--border);border-right:1px solid var(--border);padding:8px 12px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;">
-    <!-- 批量添加区域 -->
-    <div>
-      <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text2);margin-bottom:6px;">⚡ 快速添加</div>
-      <div style="font-size:8px;color:var(--text2);margin-bottom:4px;">输入尺寸后选择添加方式</div>
-      <div class="form-row" style="grid-template-columns:1fr 1fr 60px;margin-bottom:4px;">
-        <div class="form-group">
-          <label class="form-label">长mm</label>
-          <input type="number" class="form-input" id="quick-l" value="0" min="50" max="5000">
-        </div>
-        <div class="form-group">
-          <label class="form-label">宽mm</label>
-          <input type="number" class="form-input" id="quick-w" value="0" min="50" max="2500">
-        </div>
-        <div class="form-group">
-          <label class="form-label">数量</label>
-          <input type="number" class="form-input" id="quick-qty" value="1" min="1" max="100">
-        </div>
-      </div>
-      <div class="form-row" style="grid-template-columns:1fr 1fr 60px;margin-bottom:4px;">
-        <div class="form-group">
-          <label class="form-label">高mm</label>
-          <input type="number" class="form-input" id="quick-h" value="0" min="50" max="3000">
-        </div>
-        <div class="form-group">
-          <label class="form-label">kg</label>
-          <input type="number" class="form-input" id="quick-wt" value="0" min="0.1" max="30000" step="0.1">
-        </div>
-        <div class="form-group">
-          <label class="form-label">颜色</label>
-          <select class="form-input" id="quick-color" style="padding:2px;font-size:9px;">
-            <option value="#e53935">红</option>
-            <option value="#1e88e5">蓝</option>
-            <option value="#43a047">绿</option>
-            <option value="#fdd835">黄</option>
-            <option value="#fb8c00">橙</option>
-            <option value="#8e24aa">紫</option>
-            <option value="#00acc1">青</option>
-            <option value="#757575">灰</option>
-            <option value="#d81b60">粉</option>
-            <option value="#8d6e63">棕</option>
-          </select>
-        </div>
-      </div>
-      <div style="display:flex;gap:6px;margin-top:4px;">
-        <button class="add-btn" onclick="quickAddBoxes()" style="flex:1;">+ 添加到待装箱</button>
-        <button class="add-btn" onclick="quickAddAndLoad()" style="flex:1;background:var(--green);">📦 直接装箱</button>
-      </div>
-    </div>
-
-    <!-- 常用尺寸预设 -->
-    <div>
-      <div class="presets" id="presets"></div>
-    </div>
-
-    <!-- 集装箱规格选择 -->
-    <div style="border-top:1px solid var(--border);padding-top:6px;margin-top:auto;">
-      <div class="sec-title">🚢 集装箱规格</div>
-      <div id="ctype-list"></div>
-    </div>
-  </div>
-
-  <div class="right-panel">
-    <div class="stat-block">
-      <div class="sb-title">集装箱容量</div>
-      <div class="plabel"><span>体积利用率</span><span id="vpct">0%</span></div>
-      <div class="pbar"><div class="pfill" id="vbar" style="width:0%"></div></div>
-      <div class="plabel"><span>重量利用率</span><span id="wpct">0%</span></div>
-      <div class="pbar"><div class="pfill" id="wbar" style="width:0%"></div></div>
-      <div class="sr"><span class="lbl">剩余体积</span><span class="val" id="s-vrem">—</span></div>
-      <div class="sr"><span class="lbl">剩余载重</span><span class="val" id="s-wrem">—</span></div>
-    </div>
-
-    <div class="stat-block">
-      <div class="sb-title">已装载纸箱</div>
-      <div class="sr"><span class="lbl">数量</span><span class="val highlight" id="s-pcount">0</span></div>
-      <div class="sr"><span class="lbl">总体积</span><span class="val" id="s-pvol">0 m³</span></div>
-      <div class="sr"><span class="lbl">总重量</span><span class="val" id="s-pwt">0 kg</span></div>
-      <div class="sr"><span class="lbl">最大层高</span><span class="val yellow" id="s-maxz">0 mm</span></div>
-    </div>
-
-    <div class="stat-block">
-      <div class="sb-title">📊 堆叠层统计</div>
-      <div id="stack-layers"><div style="color:var(--text2);font-size:9px;text-align:center;padding:4px 0;">暂无装载数据</div></div>
-    </div>
-
-    <div class="stat-block">
-      <div class="sb-title">按颜色分类</div>
-      <div id="color-breakdown"></div>
-    </div>
-
-    <div class="stat-block">
-      <div class="sb-title">全局汇总</div>
-      <div class="sr"><span class="lbl">所有箱子</span><span class="val" id="s-allcount">0 个</span></div>
-      <div class="sr"><span class="lbl">所有体积</span><span class="val" id="s-allvol">0 m³</span></div>
-      <div class="sr"><span class="lbl">所有重量</span><span class="val" id="s-allwt">0 kg</span></div>
-      <div class="sr"><span class="lbl">未装载</span><span class="val red" id="s-unloaded">0</span></div>
-    </div>
-
-    <div class="overflow-warn" id="overflow-warn">
-      ⚠️ <span id="overflow-text"></span>
-    </div>
-  </div>
-</div>
-
-<!-- BOTTOM 80%: full-bleed 3D viewer -->
-<div id="viewer">
-  <canvas id="three-canvas"></canvas>
-  <div class="empty-hint" id="empty-hint">
-    <span class="big">📦</span>
-    双击待装箱列表放入集装箱
-  </div>
-  <div class="cam-hint">
-    <span class="key-hint">左键拖</span> 移动箱子 &nbsp;|&nbsp;
-    <span class="key-hint">右键拖</span> 旋转视角 &nbsp;|&nbsp;
-    <span class="key-hint">滚轮</span> 缩放 &nbsp;|&nbsp;
-    <span class="key-hint">1</span> 正门视角 &nbsp;|&nbsp;
-    <span class="key-hint">2</span> 侧面视角
-  </div>
-  <div class="xyz-panel" id="xyz-panel">
-    <div class="xyz-group">
-      <div class="xyz-label">X (宽)</div>
-      <div class="xyz-val" id="xyz-x">0</div>
-      <div class="xyz-btns">
-        <button class="xyz-btn" onclick="nudgeBox('x',-50)">−</button>
-        <button class="xyz-btn" onclick="nudgeBox('x',50)">+</button>
-      </div>
-    </div>
-    <div class="xyz-group">
-      <div class="xyz-label">Y (高)</div>
-      <div class="xyz-val" id="xyz-y">0</div>
-      <div class="xyz-btns">
-        <button class="xyz-btn" onclick="nudgeBox('y',-50)">−</button>
-        <button class="xyz-btn" onclick="nudgeBox('y',50)">+</button>
-      </div>
-    </div>
-    <div class="xyz-group">
-      <div class="xyz-label">Z (长)</div>
-      <div class="xyz-val" id="xyz-z">0</div>
-      <div class="xyz-btns">
-        <button class="xyz-btn" onclick="nudgeBox('z',-50)">−</button>
-        <button class="xyz-btn" onclick="nudgeBox('z',50)">+</button>
-      </div>
-    </div>
-    <div class="xyz-divider"></div>
-    <div style="display:flex;flex-direction:column;gap:4px;align-items:center;">
-      <button class="xyz-reset" onclick="resetBoxPosition()">📍 归零 (R/0)</button>
-      <div style="font-size:8px;color:var(--text2);text-align:center;line-height:1.4;">
-        快捷键: X/X̄=左右 Z/Z̄=前后 Y/Ȳ=上下<br>方向键=XZ移动
-      </div>
-    </div>
-  </div>
-</div>
-
+ <!-- Right: Stats -->
+ <div class="right-panel">
+ <div class="panel-header">📊 统计</div>
+ <div class="stats-grid">
+ <div class="stat-box">
+ <div class="stat-label">已装箱</div>
+ <div class="stat-value" id="stat-placed">0</div>
+ </div>
+ <div class="stat-box">
+ <div class="stat-label">待装箱</div>
+ <div class="stat-value" id="stat-pending">0</div>
+ </div>
+ <div class="stat-box">
+ <div class="stat-label">体积</div>
+ <div class="stat-value" id="stat-vol">0.00 m³</div>
+ </div>
+ <div class="stat-box">
+ <div class="stat-label">重量</div>
+ <div class="stat-value" id="stat-wt">0 kg</div>
+ </div>
+ <div class="stat-box full">
+ <div class="stat-label">体积利用率</div>
+ <div class="stat-value green" id="stat-util">0%</div>
+ </div>
+ </div>
+ <div class="xyz-panel" id="xyz-panel" style="display:none;">
+ <h4>📍 选中箱子位置</h4>
+ <div class="xyz-row">
+ <label>X</label><input type="number" id="xyz-x" value="0"><button onclick="resetX()">重置</button>
+ </div>
+ <div class="xyz-row">
+ <label>Y</label><input type="number" id="xyz-y" value="0"><button onclick="resetY()">重置</button>
+ </div>
+ <div class="xyz-row">
+ <label>Z</label><input type="number" id="xyz-z" value="0"><button onclick="resetZ()">重置</button>
+ </div>
+ </div>
+ <div style="padding:10px; margin-top:auto;">
+ <button class="secondary" style="width:100%; padding:6px; background:var(--panel2); border:1px solid var(--border); border-radius:4px; color:var(--text); cursor:pointer;" onclick="exportData()">📄 导出报告</button>
+ <button class="secondary" style="width:100%; padding:6px; margin-top:5px; background:var(--panel2); border:1px solid var(--red); border-radius:4px; color:var(--red); cursor:pointer;" onclick="clearAll()">🗑️ 清空</button>
+ </div>
+ </div>
+</main>
+<div id="toast"></div>
 <div id="tooltip"></div>
-<div class="toast" id="toast"></div>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 <script>
-// ===================== DATA =====================
-const COLORS = [
-  { name: '红色', hex: '#e53935' },
-  { name: '蓝色', hex: '#1e88e5' },
-  { name: '绿色', hex: '#43a047' },
-  { name: '黄色', hex: '#fdd835' },
-  { name: '橙色', hex: '#fb8c00' },
-  { name: '紫色', hex: '#8e24aa' },
-  { name: '青色', hex: '#00acc1' },
-  { name: '灰色', hex: '#757575' },
-  { name: '粉色', hex: '#d81b60' },
-  { name: '棕色', hex: '#8d6e63' },
-];
+const SCALE = 100; // 1 unit = 100mm
 
 const CONTAINERS = [
-  { id: '20gp', name: "20尺标准柜", short: "20' GP", iL: 5898, iW: 2352, iH: 2393, maxWt: 28200 },
-  { id: '40gp', name: "40尺标准柜", short: "40' GP", iL: 12032, iW: 2352, iH: 2393, maxWt: 26600 },
-  { id: '40hc', name: "40尺高柜",   short: "40' HC",  iL: 12032, iW: 2352, iH: 2698, maxWt: 26600 },
+ { id: '20gp', short: '20GP', name: '20尺标准箱', iL: 5898, iW: 2352, iH: 2393, maxWt: 28180 },
+ { id: '40gp', short: '40GP', name: '40尺标准箱', iL: 12032, iW: 2352, iH: 2393, maxWt: 28750 },
+ { id: '40hc', short: '40HC', name: '40尺高柜', iL: 12032, iW: 2352, iH: 2698, maxWt: 28600 },
 ];
+let containerIdx = 2; // default 40HC
 
 const PRESETS = [
-  { label: "小纸箱", l: 300, w: 200, h: 200, wt: 5 },
-  { label: "中纸箱", l: 400, w: 300, h: 300, wt: 10 },
-  { label: "大纸箱", l: 600, w: 400, h: 400, wt: 20 },
-  { label: "扁箱",   l: 800, w: 600, h: 150, wt: 15 },
-  { label: "窄高箱", l: 300, w: 300, h: 600, wt: 18 },
+ { name: '标准纸箱', l: 600, w: 400, h: 400, wt: 15 },
+ { name: '大纸箱', l: 800, w: 600, h: 500, wt: 25 },
+ { name: '小纸箱', l: 400, w: 300, h: 300, wt: 8 },
+ { name: '托盘箱', l: 1200, w: 800, h: 1000, wt: 100 },
+ { name: '异形箱', l: 500, w: 500, h: 800, wt: 20 },
 ];
 
-const SCALE = 100; // 1 Three.js unit = 100mm
-let containerIdx = 2;
-let selectedColor = COLORS[0];
-let boxIdCounter = 0;
+let placedBoxes = [];
 let pendingBoxes = [];
-let placedBoxes = []; // { id, l,w,h,wt, color, x,y,z, mesh }
-
-// ===================== THREE.JS GLOBALS =====================
-let scene, camera, renderer, controls;
-let containerGroup;
-let raycaster, mouse;
-let dragBox = null;
-let dragOffsetXZ = new THREE.Vector3();
-let isDraggingBox = false;
-let isShiftHeld = false;
-let hoveredBox = null;
+let boxIdCounter = 0;
 let selectedBox = null;
+let hoveredBox = null;
+let dragBox = null;
+let isDraggingBox = false;
+let dragOffsetXZ = new THREE.Vector2();
 let mouseDownPos = { x: 0, y: 0 };
 let hasMoved = false;
+let isShiftHeld = false;
 
-// Height scroll: when hovering a box, scroll wheel changes its height
-let heightScrollBox = null;
-let heightScrollPlane = null;
-
-// 装箱位置队列，确保严格按顺序：Z(里→外) → X(左→右) → Y(下→上)
+let scene, camera, renderer, controls, raycaster, mouse;
+let containerGroup;
 let packingQueue = [];
 let packingQueueInitialized = false;
 
-// 初始化装箱位置队列
-function initPackingQueue(box) {
-  const c = CONTAINERS[containerIdx];
-  const stepX = Math.max(box.w, 50);
-  const stepZ = Math.max(box.l, 50);
-  const maxLayer = Math.floor(c.iH / box.h);
-
-  const maxCol = Math.floor((c.iW - box.w) / stepX) + 1;
-  const maxRow = Math.floor((c.iL - box.l) / stepZ) + 1;
-
-  packingQueue = [];
-
-  // 生成位置队列：Z(里→外) → X(左→右) → Y(下→上)
-  // 注意：row=0是里面(后门)，row增大往外走
-  for (let row = 0; row < maxRow; row++) {
-    for (let col = 0; col < maxCol; col++) {
-      for (let layer = 0; layer < maxLayer; layer++) {
-        const x = -(c.iW / 2) + box.w / 2 + col * stepX;
-        const z = -(c.iL / 2) + box.l / 2 + row * stepZ;
-        const y = layer * box.h + box.h / 2;
-
-        if (x + box.w / 2 <= c.iW / 2 && z + box.l / 2 <= c.iL / 2 && y + box.h / 2 <= c.iH) {
-          packingQueue.push({ x, y, z, row, col, layer });
-        }
-      }
-    }
-  }
-
-  packingQueueInitialized = true;
-}
-
-// ===================== INIT THREE =====================
+// ===================== THREE.JS INIT =====================
+let initThreeRetries = 0;
 function initThree() {
-  const viewer = document.getElementById('viewer');
-  const canvas = document.getElementById('three-canvas');
-  
-  if (viewer.clientWidth === 0 || viewer.clientHeight === 0) {
-    console.warn('Viewer has zero size, delaying init');
-    setTimeout(initThree, 100);
-    return;
-  }
-
-  scene = new THREE.Scene();
-  scene.fog = new THREE.FogExp2(0xf0f4f8, 0.004);
-
-  camera = new THREE.PerspectiveCamera(45, viewer.clientWidth / viewer.clientHeight, 0.1, 2000);
-  camera.position.set(25, 20, 30);
-
-  renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
-  renderer.setSize(viewer.clientWidth, viewer.clientHeight);
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-  renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.2;
-
-  // RIGHT = rotate camera, MIDDLE = dolly/zoom, LEFT handled by our code (box drag)
-  controls = new THREE.OrbitControls(camera, renderer.domElement);
-  controls.enableDamping = true;
-  controls.dampingFactor = 0.08;
-  controls.minDistance = 5;
-  controls.maxDistance = 500;
-  controls.mouseButtons = {
-    LEFT: null,            // our onMouseDown handles box drag
-    MIDDLE: THREE.MOUSE.DOLLY,
-    RIGHT: THREE.MOUSE.ROTATE
-  };
-  controls.touches = { ONE: THREE.TOUCH.PAN, TWO: THREE.TOUCH.DOLLY_ROTATE };
-
-  raycaster = new THREE.Raycaster();
-  mouse = new THREE.Vector2();
-
-  // Lighting
-  scene.add(new THREE.AmbientLight(0xe8f0f8, 1.2));
-
-  const sun = new THREE.DirectionalLight(0xfff8f0, 2.0);
-  sun.position.set(30, 60, 25);
-  sun.castShadow = true;
-  sun.shadow.mapSize.width = 2048;
-  sun.shadow.mapSize.height = 2048;
-  sun.shadow.camera.near = 0.5;
-  sun.shadow.camera.far = 500;
-  sun.shadow.camera.left = -100;
-  sun.shadow.camera.right = 100;
-  sun.shadow.camera.top = 100;
-  sun.shadow.camera.bottom = -100;
-  sun.shadow.bias = -0.001;
-  scene.add(sun);
-
-  const fill = new THREE.DirectionalLight(0xc0d8ff, 0.6);
-  fill.position.set(-20, 10, -10);
-  scene.add(fill);
-
-  const rim = new THREE.DirectionalLight(0xffffff, 0.3);
-  rim.position.set(0, -10, -30);
-  scene.add(rim);
-
-  // Ground
-  const groundGeo = new THREE.PlaneGeometry(500, 500);
-  const groundMat = new THREE.MeshStandardMaterial({ color: 0xf4f6f9, roughness: 0.95, metalness: 0.02 });
-  const groundMesh = new THREE.Mesh(groundGeo, groundMat);
-  groundMesh.rotation.x = -Math.PI / 2;
-  groundMesh.position.y = -0.1;
-  groundMesh.receiveShadow = true;
-  scene.add(groundMesh);
-
-  const gridHelper = new THREE.GridHelper(200, 40, 0xd0d8e0, 0xe8eef4);
-  scene.add(gridHelper);
-
-  buildContainer(CONTAINERS[containerIdx]);
-  animate();
-
-  // Events - Mouse
-  canvas.addEventListener('mousedown', onMouseDown);
-  canvas.addEventListener('mousemove', onMouseMove);
-  canvas.addEventListener('mouseup', onMouseUp);
-  canvas.addEventListener('wheel', onWheel, { passive: false });
-  canvas.addEventListener('contextmenu', e => e.preventDefault());
-  viewer.addEventListener('resize', onResize);
-  window.addEventListener('resize', onResize);
-  // Also handle flex layout resize via ResizeObserver
-  if (window.ResizeObserver) {
-    new ResizeObserver(onResize).observe(viewer);
-  }
-  viewer.addEventListener('dblclick', onViewerDblClick);
-  document.addEventListener('keydown', onKeyDown);
-  document.addEventListener('keyup', onKeyUp);
-  
-  // Events - Touch (iPad support)
-  canvas.addEventListener('touchstart', onTouchStart, { passive: false });
-  canvas.addEventListener('touchmove', onTouchMove, { passive: false });
-  canvas.addEventListener('touchend', onTouchEnd, { passive: false });
-}
-
-// ===================== INPUT =====================
-function onKeyDown(e) {
-  // Ignore if typing in input fields
-  if (e.target.tagName === 'INPUT') return;
-  
-  if (e.key === 'Shift') { isShiftHeld = true; updateCursor(); }
-  
-  // Arrow keys for height adjustment (original) and XZ movement (new)
-  if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
-    e.preventDefault();
-    const box = selectedBox || hoveredBox;
-    if (box) {
-      const step = e.shiftKey ? 50 : 10; // shift = big step
-      const delta = e.key === 'ArrowUp' ? step : -step;
-      changeBoxHeight(box, delta);
-    }
-  }
-  
-  // X/Z/Y axis nudge with keyboard
-  const key = e.key.toLowerCase();
-  const shift = e.shiftKey;
-  
-  if (key === 'x') {
-    e.preventDefault();
-    nudgeBox('x', shift ? -50 : 50);
-    showToast(`${shift ? '←' : '→'} X轴 ${shift ? '-' : '+'}50mm`, 'info');
-    return;
-  }
-  if (key === 'z') {
-    e.preventDefault();
-    nudgeBox('z', shift ? -50 : 50);
-    showToast(`${shift ? '↑' : '↓'} Z轴 ${shift ? '-' : '+'}50mm`, 'info');
-    return;
-  }
-  if (key === 'y') {
-    e.preventDefault();
-    nudgeBox('y', shift ? -50 : 50);
-    showToast(`${shift ? '↓' : '↑'} Y轴 ${shift ? '-' : '+'}50mm`, 'info');
-    return;
-  }
-  if (key === 'r' || key === '0') {
-    e.preventDefault();
-    resetBoxPosition();
-    return;
-  }
-  if (e.key === 'ArrowLeft') {
-    e.preventDefault();
-    nudgeBox('x', -50);
-    return;
-  }
-  if (e.key === 'ArrowRight') {
-    e.preventDefault();
-    nudgeBox('x', 50);
-    return;
-  }
-  
-  if (e.key === 'Delete' || e.key === 'Backspace') {
-    if (selectedBox && document.activeElement.tagName === 'BODY') {
-      if (confirm(`移除箱体 #${selectedBox.id} (${selectedBox.l}×${selectedBox.w}×${selectedBox.h}mm)?`)) {
-        removeBox(selectedBox.id);
-      }
-    }
-  }
-  if (e.key === 'Escape') { deselectBox(); }
-  
-  // Camera view shortcuts: 1 = front (door), 2 = side
-  if (e.key === '1') {
-    e.preventDefault();
-    setCameraView('front');
-    showToast('视角: 集装箱门 (正面)', 'info');
-    return;
-  }
-  if (e.key === '2') {
-    e.preventDefault();
-    setCameraView('side');
-    showToast('视角: 集装箱侧面', 'info');
-    return;
-  }
-}
-
-function setCameraView(view) {
-  const c = CONTAINERS[containerIdx];
-  const L = c.iL / SCALE; // length (Z)
-  const W = c.iW / SCALE; // width (X)
-  const H = c.iH / SCALE; // height (Y)
-  
-  // Target: center of container
-  const target = new THREE.Vector3(0, H/3, 0);
-  
-  if (view === 'front') {
-    // Front view: look at the door (positive Z)
-    // Position: slightly above and in front of the door
-    const distance = Math.max(L, W, H) * 0.8;
-    camera.position.set(0, H/2, L/2 + distance);
-  } else if (view === 'side') {
-    // Side view: look at the right side (positive X)
-    const distance = Math.max(L, W, H) * 0.8;
-    camera.position.set(W/2 + distance, H/2, 0);
-  }
-  
-  camera.lookAt(target);
-  controls.target.copy(target);
-  controls.update();
-}
-
-function onKeyUp(e) {
-  if (e.key === 'Shift') { isShiftHeld = false; updateCursor(); }
-}
-
-function updateCursor() {
-  const canvas = document.getElementById('three-canvas');
-  if (isShiftHeld && (hoveredBox || selectedBox)) {
-    canvas.style.cursor = 'grab';
-  } else {
-    canvas.style.cursor = '';
-  }
-}
-
-// ===================== MOUSE EVENTS =====================
-let pendingDragIdx = -1;
-let dragBoxStartY = 0;
-
-function onMouseDown(e) {
-  if (e.button !== 0) return;
-  mouseDownPos = { x: e.clientX, y: e.clientY };
-  hasMoved = false;
-
-  const rect = renderer.domElement.getBoundingClientRect();
-  mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-  mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-  raycaster.setFromCamera(mouse, camera);
-
-  const boxMeshes = placedBoxes.map(b => b.mesh);
-  const hits = raycaster.intersectObjects(boxMeshes, true);
-
-  if (hits.length > 0) {
-    const hitMesh = hits[0].object;
-    // 递归查找 hitMesh 属于哪个 box 的 mesh group
-    function findParentBox(mesh) {
-      if (!mesh) return null;
-      for (const b of placedBoxes) {
-        if (b.mesh === mesh) return b;
-      }
-      // 向上查找父级
-      if (mesh.parent) return findParentBox(mesh.parent);
-      return null;
-    }
-    const box = findParentBox(hitMesh);
-    if (box) {
-      e.stopPropagation();
-      controls.enabled = false;
-      dragBox = box;
-      dragBoxStartY = box.mesh.position.y;
-      isDraggingBox = true;
-      selectBox(box);
-
-      const boxWorldPos = new THREE.Vector3();
-      box.mesh.getWorldPosition(boxWorldPos);
-      const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -boxWorldPos.y);
-      const intersectPt = new THREE.Vector3();
-      raycaster.ray.intersectPlane(plane, intersectPt);
-      dragOffsetXZ.set(
-        intersectPt.x - boxWorldPos.x,
-        0,
-        intersectPt.z - boxWorldPos.z
-      );
-      highlightBox(box, true);
-      return;
-    }
-  }
-
-  // Clicked empty space: let orbit controls handle rotation
-  controls.enabled = true;
-  deselectBox();
-}
-
-function onMouseMove(e) {
-  if (Math.abs(e.clientX - mouseDownPos.x) > 3 || Math.abs(e.clientY - mouseDownPos.y) > 3) {
-    hasMoved = true;
-  }
-
-  const rect = renderer.domElement.getBoundingClientRect();
-  mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-  mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-  raycaster.setFromCamera(mouse, camera);
-
-  if (!isDraggingBox) {
-    const boxMeshes = placedBoxes.map(b => b.mesh);
-    const hits = raycaster.intersectObjects(boxMeshes, true);
-    // 递归查找 hitMesh 属于哪个 box
-    function findHoverBox(mesh) {
-      if (!mesh) return null;
-      for (const b of placedBoxes) {
-        if (b.mesh === mesh) return b;
-      }
-      if (mesh.parent) return findHoverBox(mesh.parent);
-      return null;
-    }
-    const newHover = hits.length > 0 ? findHoverBox(hits[0].object) : null;
-
-    if (newHover !== hoveredBox) {
-      if (hoveredBox && hoveredBox !== selectedBox) unhighlightBox(hoveredBox);
-      hoveredBox = newHover;
-      if (hoveredBox && hoveredBox !== selectedBox) highlightBox(hoveredBox, false);
-    }
-
-    const canvas = document.getElementById('three-canvas');
-    canvas.style.cursor = hoveredBox ? 'grab' : '';
-    updateTooltip(e, newHover);
-    heightScrollBox = newHover;
-    return;
-  }
-
-  // Dragging box
-  if (isDraggingBox && dragBox) {
-    if (isShiftHeld) {
-      // Shift+drag: move Y (height) based on vertical mouse movement
-      const deltaY = (mouseDownPos.y - e.clientY) / SCALE * 2;
-      const newY = dragBoxStartY + deltaY;
-      
-      // Use tryMoveBox to handle collision detection properly
-      if (tryMoveBox(dragBox, dragBox.mesh.position.x, newY, dragBox.mesh.position.z)) {
-        updateBoxPosition(dragBox);
-        updateAllStats();
-        updateXYZPanel(dragBox);
-      }
-    } else {
-      // Normal drag: XZ plane
-      const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -dragBox.mesh.position.y);
-      const intersectPt = new THREE.Vector3();
-      raycaster.ray.intersectPlane(plane, intersectPt);
-
-      const halfW = CONTAINERS[containerIdx].iW / SCALE / 2;
-      const halfL = CONTAINERS[containerIdx].iL / SCALE / 2;
-      const boxHalfX = dragBox.w / SCALE / 2;
-      const boxHalfZ = dragBox.l / SCALE / 2;
-
-      let newX = intersectPt.x - dragOffsetXZ.x;
-      let newZ = intersectPt.z - dragOffsetXZ.z;
-      newX = Math.max(-halfW + boxHalfX, Math.min(halfW - boxHalfX, newX));
-      newZ = Math.max(-halfL + boxHalfZ, Math.min(halfL - boxHalfZ, newZ));
-
-      // Use tryMoveBox to handle collision detection properly
-      if (tryMoveBox(dragBox, newX, dragBox.mesh.position.y, newZ)) {
-        updateBoxPosition(dragBox);
-        updateAllStats();
-        updateXYZPanel(dragBox);
-      }
-    }
-  }
-}
-
-function onMouseUp(e) {
-  if (isDraggingBox && dragBox) {
-    if (hasMoved) {
-      // Snap to 10mm grid
-      let snapX = Math.round(dragBox.mesh.position.x * SCALE / 10) * 10 / SCALE;
-      let snapY = Math.round((dragBox.mesh.position.y - dragBox.h/SCALE/2) / SCALE * 10) * 10 / SCALE + dragBox.h/SCALE/2;
-      let snapZ = Math.round(dragBox.mesh.position.z * SCALE / 10) * 10 / SCALE;
-      
-      const oldX = dragBox.mesh.position.x, oldY = dragBox.mesh.position.y, oldZ = dragBox.mesh.position.z;
-      dragBox.mesh.position.set(snapX, snapY, snapZ);
-      if (checkBoxCollision(dragBox)) {
-        dragBox.mesh.position.set(oldX, oldY, oldZ);
-      }
-      updateBoxPosition(dragBox);
-    }
-    highlightBox(dragBox, false);
-    updateAllStats();
-    updateXYZPanel(dragBox);
-  }
-
-  isDraggingBox = false;
-  dragBox = null;
-  controls.enabled = true;
-}
-
-// ===================== TOUCH EVENTS (iPad) =====================
-let touchStartPos = null;
-let touchDragBox = null;
-let touchDragOffset = { x: 0, z: 0 };
-let touchHasMoved = false;
-let lastTouchTime = 0;
-
-function onTouchStart(e) {
-  if (e.touches.length !== 1) return;
-  e.preventDefault();
-  
-  const touch = e.touches[0];
-  touchStartPos = { x: touch.clientX, y: touch.clientY };
-  touchHasMoved = false;
-  
-  const rect = renderer.domElement.getBoundingClientRect();
-  mouse.x = ((touch.clientX - rect.left) / rect.width) * 2 - 1;
-  mouse.y = -((touch.clientY - rect.top) / rect.height) * 2 + 1;
-  raycaster.setFromCamera(mouse, camera);
-  
-  // Check if touching a box
-  const boxMeshes = placedBoxes.map(b => b.mesh);
-  const hits = raycaster.intersectObjects(boxMeshes, true);
-  
-  if (hits.length > 0) {
-    const hitMesh = hits[0].object;
-    // 递归查找 hitMesh 属于哪个 box
-    function findTouchBox(mesh) {
-      if (!mesh) return null;
-      for (const b of placedBoxes) {
-        if (b.mesh === mesh) return b;
-      }
-      if (mesh.parent) return findTouchBox(mesh.parent);
-      return null;
-    }
-    const box = findTouchBox(hitMesh);
-    if (box) {
-      controls.enabled = false;
-      touchDragBox = box;
-      selectBox(box);
-      
-      // Calculate offset
-      const boxWorldPos = new THREE.Vector3();
-      box.mesh.getWorldPosition(boxWorldPos);
-      const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -boxWorldPos.y);
-      const intersectPt = new THREE.Vector3();
-      raycaster.ray.intersectPlane(plane, intersectPt);
-      touchDragOffset.x = intersectPt.x - boxWorldPos.x;
-      touchDragOffset.z = intersectPt.z - boxWorldPos.z;
-      highlightBox(box, true);
-    }
-  } else {
-    controls.enabled = true;
-    deselectBox();
-  }
-}
-
-function onTouchMove(e) {
-  if (e.touches.length !== 1) return;
-  e.preventDefault();
-  
-  const touch = e.touches[0];
-  
-  // Check if moved
-  if (touchStartPos && (Math.abs(touch.clientX - touchStartPos.x) > 5 || Math.abs(touch.clientY - touchStartPos.y) > 5)) {
-    touchHasMoved = true;
-  }
-  
-  const rect = renderer.domElement.getBoundingClientRect();
-  mouse.x = ((touch.clientX - rect.left) / rect.width) * 2 - 1;
-  mouse.y = -((touch.clientY - rect.top) / rect.height) * 2 + 1;
-  raycaster.setFromCamera(mouse, camera);
-  
-  if (touchDragBox) {
-    // Dragging box
-    const c = CONTAINERS[containerIdx];
-    const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -touchDragBox.mesh.position.y);
-    const intersectPt = new THREE.Vector3();
-    raycaster.ray.intersectPlane(plane, intersectPt);
-    
-    const halfW = c.iW / 2 / SCALE;
-    const halfL = c.iL / 2 / SCALE;
-    const boxHalfX = touchDragBox.w / 2 / SCALE;
-    const boxHalfZ = touchDragBox.l / 2 / SCALE;
-    
-    let newX = intersectPt.x - touchDragOffset.x;
-    let newZ = intersectPt.z - touchDragOffset.z;
-    newX = Math.max(-halfW + boxHalfX, Math.min(halfW - boxHalfX, newX));
-    newZ = Math.max(-halfL + boxHalfZ, Math.min(halfL - boxHalfZ, newZ));
-    
-    touchDragBox.mesh.position.x = newX;
-    touchDragBox.mesh.position.z = newZ;
-    updateBoxPosition(touchDragBox);
-    updateAllStats();
-    updateTooltip(null, touchDragBox);
-  } else {
-    // Orbit controls handle camera rotation
-    controls.enabled = true;
-  }
-}
-
-function onTouchEnd(e) {
-  if (touchDragBox && touchHasMoved) {
-    // Snap to grid
-    touchDragBox.x = Math.round(touchDragBox.mesh.position.x * SCALE / 10) * 10;
-    touchDragBox.z = Math.round(touchDragBox.mesh.position.z * SCALE / 10) * 10;
-    touchDragBox.mesh.position.x = touchDragBox.x / SCALE;
-    touchDragBox.mesh.position.z = touchDragBox.z / SCALE;
-    updateBoxPosition(touchDragBox);
-    highlightBox(touchDragBox, false);
-    updateAllStats();
-  }
-  
-  touchDragBox = null;
-  touchStartPos = null;
-  controls.enabled = true;
-}
-
-function onWheel(e) {
-  e.preventDefault();
-
-  const rect = renderer.domElement.getBoundingClientRect();
-  mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-  mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-  raycaster.setFromCamera(mouse, camera);
-
-  // Check if hovering a box
-  const boxMeshes = placedBoxes.map(b => b.mesh);
-  const hits = raycaster.intersectObjects(boxMeshes, true);
-
-  if (hits.length > 0) {
-    const hitMesh = hits[0].object;
-    // 递归查找 hitMesh 属于哪个 box
-    function findWheelBox(mesh) {
-      if (!mesh) return null;
-      for (const b of placedBoxes) {
-        if (b.mesh === mesh) return b;
-      }
-      if (mesh.parent) return findWheelBox(mesh.parent);
-      return null;
-    }
-    const box = findWheelBox(hitMesh);
-    if (box) {
-      // Scroll changes height
-      const delta = e.deltaY > 0 ? -20 : 20;
-      changeBoxHeight(box, delta);
-      return;
-    }
-  }
-
-  // Otherwise: let OrbitControls handle zoom
-  // We need to manually call dolly
-  if (e.deltaY < 0) {
-    camera.position.multiplyScalar(0.9);
-  } else {
-    camera.position.multiplyScalar(1.1);
-  }
-}
-
-function onViewerDblClick(e) {
-  if (e.button !== 0) return;
-  const rect = renderer.domElement.getBoundingClientRect();
-  mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-  mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-  raycaster.setFromCamera(mouse, camera);
-  const boxMeshes = placedBoxes.map(b => b.mesh);
-  const hits = raycaster.intersectObjects(boxMeshes, true);
-
-  if (hits.length > 0) {
-    const hitMesh = hits[0].object;
-    // 递归查找 hitMesh 属于哪个 box
-    function findDblClickBox(mesh) {
-      if (!mesh) return null;
-      for (const b of placedBoxes) {
-        if (b.mesh === mesh) return b;
-      }
-      if (mesh.parent) return findDblClickBox(mesh.parent);
-      return null;
-    }
-    const box = findDblClickBox(hitMesh);
-    if (box) {
-      if (confirm(`移除箱体 #${box.id} (${box.l}×${box.w}×${box.h}mm)?`)) {
-        removeBox(box.id);
-      }
-    }
-  }
-}
-
-function onResize() {
-  const viewer = document.getElementById('viewer');
-  camera.aspect = viewer.clientWidth / viewer.clientHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(viewer.clientWidth, viewer.clientHeight);
-}
-
-// ===================== BOX HEIGHT CONTROL =====================
-function changeBoxHeight(box, delta) {
-  const c = CONTAINERS[containerIdx];
-  const H = c.iH / SCALE;
-  const bHalfH = box.h / SCALE / 2;
-  const newCenterY = box.mesh.position.y + delta / SCALE;
-  const clampedY = Math.max(bHalfH, Math.min(H - bHalfH, newCenterY));
-
-  const oldY = box.mesh.position.y;
-  box.mesh.position.y = clampedY;
-
-  if (!checkBoxCollision(box)) {
-    updateBoxPosition(box);
-    updateAllStats();
-    updateXYZPanel(box);
-  } else {
-    box.mesh.position.y = oldY;
-  }
-}
-
-// ===================== COLLISION CHECK =====================
-function checkBoxCollision(movingBox) {
-  const c = CONTAINERS[containerIdx];
-  const H = c.iH / SCALE;
-  const mH = movingBox.h / SCALE;
-  const mBot = movingBox.mesh.position.y - mH / 2;
-  const mTop = movingBox.mesh.position.y + mH / 2;
-  
-  // Check container bounds
-  if (mTop > H || mBot < 0) return true;
-  
-  const halfW = c.iW / SCALE / 2;
-  const halfL = c.iL / SCALE / 2;
-  const mHalfW = movingBox.w / SCALE / 2;
-  const mHalfL = movingBox.l / SCALE / 2;
-  const mX = movingBox.mesh.position.x;
-  const mZ = movingBox.mesh.position.z;
-  
-  // Check horizontal bounds
-  if (mX - mHalfW < -halfW || mX + mHalfW > halfW) return true;
-  if (mZ - mHalfL < -halfL || mZ + mHalfL > halfL) return true;
-
-  // Check collision with other boxes
-  for (const b of placedBoxes) {
-    // Skip self - compare by reference or id
-    if (b === movingBox) continue;
-    if (movingBox.id !== -1 && b.id === movingBox.id) continue;
-    if (boxesOverlap(movingBox, b)) return true;
-  }
-  return false;
-}
-
-function boxesOverlap(a, b) {
-  // AABB collision detection - boxes cannot intersect
-  // a and b are box objects with mesh.position (center in Three.js units) and l, w, h (in mm)
-  
-  // Get box centers (in Three.js units where 1 unit = 100mm)
-  const ax = a.mesh.position.x, ay = a.mesh.position.y, az = a.mesh.position.z;
-  const bx = b.mesh.position.x, by = b.mesh.position.y, bz = b.mesh.position.z;
-  
-  // Half dimensions in Three.js units
-  const aHalfW = (a.w / SCALE) / 2;
-  const aHalfH = (a.h / SCALE) / 2;
-  const aHalfL = (a.l / SCALE) / 2;
-  const bHalfW = (b.w / SCALE) / 2;
-  const bHalfH = (b.h / SCALE) / 2;
-  const bHalfL = (b.l / SCALE) / 2;
-  
-  // X axis overlap check (width direction)
-  // No overlap if: a is completely to the left of b, OR a is completely to the right of b
-  if (ax + aHalfW <= bx - bHalfW || ax - aHalfW >= bx + bHalfW) return false;
-  
-  // Y axis overlap check (height direction)
-  // No overlap if: a is completely below b, OR a is completely above b
-  if (ay + aHalfH <= by - bHalfH || ay - aHalfH >= by + bHalfH) return false;
-  
-  // Z axis overlap check (length direction)
-  // No overlap if: a is completely behind b, OR a is completely in front of b
-  if (az + aHalfL <= bz - bHalfL || az - aHalfL >= bz + bHalfL) return false;
-  
-  // All three axes overlap = collision
-  return true;
-}
-
-// Clamp position to avoid collision, returns true if position was valid
-function tryMoveBox(box, newX, newY, newZ) {
-  const c = CONTAINERS[containerIdx];
-  const H = c.iH / SCALE;
-  const halfW = c.iW / SCALE / 2;
-  const halfL = c.iL / SCALE / 2;
-  const bHalfW = box.w / SCALE / 2;
-  const bHalfL = box.l / SCALE / 2;
-  const bHalfH = box.h / SCALE / 2;
-
-  // Clamp to container bounds
-  newX = Math.max(-halfW + bHalfW, Math.min(halfW - bHalfW, newX));
-  newZ = Math.max(-halfL + bHalfL, Math.min(halfL - bHalfL, newZ));
-  newY = Math.max(bHalfH, Math.min(H - bHalfH, newY));
-
-  // Save old position
-  const oldX = box.mesh.position.x, oldY = box.mesh.position.y, oldZ = box.mesh.position.z;
-  box.mesh.position.set(newX, newY, newZ);
-
-  if (checkBoxCollision(box)) {
-    box.mesh.position.set(oldX, oldY, oldZ);
-    return false;
-  }
-  return true;
-}
-
-// ===================== BOX VISUAL =====================
-function highlightBox(box, active) {
-  box.mesh.traverse(child => {
-    if (child.isMesh) {
-      child.material.emissive = new THREE.Color(active ? 0x666666 : 0x333333);
-    }
-  });
-}
-
-function unhighlightBox(box) {
-  box.mesh.traverse(child => {
-    if (child.isMesh) child.material.emissive = new THREE.Color(0x000000);
-  });
-}
-
-function selectBox(box) {
-  if (selectedBox && selectedBox !== box) unhighlightBox(selectedBox);
-  selectedBox = box;
-  highlightBox(box, true);
-  updateTooltip(null, box);
-  updateXYZPanel(box);
-  document.getElementById('xyz-panel').classList.add('show');
-}
-
-function deselectBox() {
-  if (selectedBox) { unhighlightBox(selectedBox); selectedBox = null; }
-  hideTooltip();
-  document.getElementById('xyz-panel').classList.remove('show');
-}
-
-function updateXYZPanel(box) {
-  if (!box) return;
-  const posX = (box.mesh.position.x * SCALE).toFixed(0);
-  const posZ = (box.mesh.position.z * SCALE).toFixed(0);
-  const bottomY = (box.mesh.position.y * SCALE - box.h / 2).toFixed(0);
-  document.getElementById('xyz-x').textContent = posX + ' mm';
-  document.getElementById('xyz-y').textContent = bottomY + ' mm';
-  document.getElementById('xyz-z').textContent = posZ + ' mm';
-}
-
-function nudgeBox(axis, delta) {
-  if (!selectedBox) return;
-  const box = selectedBox;
-  const oldX = box.mesh.position.x, oldY = box.mesh.position.y, oldZ = box.mesh.position.z;
-  
-  if (axis === 'x') box.mesh.position.x += delta / SCALE;
-  else if (axis === 'y') box.mesh.position.y += delta / SCALE;
-  else if (axis === 'z') box.mesh.position.z += delta / SCALE;
-  
-  // Clamp to container
-  const c = CONTAINERS[containerIdx];
-  const H = c.iH / SCALE;
-  const halfW = c.iW / SCALE / 2;
-  const halfL = c.iL / SCALE / 2;
-  const bHW = box.w / SCALE / 2, bHL = box.l / SCALE / 2, bHH = box.h / SCALE / 2;
-  box.mesh.position.x = Math.max(-halfW + bHW, Math.min(halfW - bHW, box.mesh.position.x));
-  box.mesh.position.z = Math.max(-halfL + bHL, Math.min(halfL - bHL, box.mesh.position.z));
-  box.mesh.position.y = Math.max(bHH, Math.min(H - bHH, box.mesh.position.y));
-  
-  if (checkBoxCollision(box)) {
-    box.mesh.position.set(oldX, oldY, oldZ);
-    showToast('⚠ 碰撞！无法移动', 'error');
-  } else {
-    updateBoxPosition(box);
-    updateAllStats();
-    updateXYZPanel(box);
-  }
-}
-
-function resetBoxPosition() {
-  if (!selectedBox) return;
-  const box = selectedBox;
-  const bHH = box.h / SCALE / 2;
-  const target = new THREE.Vector3(0, bHH, 0);
-  const oldPos = box.mesh.position.clone();
-  box.mesh.position.copy(target);
-  
-  if (checkBoxCollision(box)) {
-    box.mesh.position.copy(oldPos);
-    showToast('⚠ 目标位置有碰撞，无法归零', 'error');
-  } else {
-    updateBoxPosition(box);
-    updateAllStats();
-    updateXYZPanel(box);
-    showToast('📍 坐标已归零', 'success');
-  }
-}
-
-function createBoxMesh(box) {
-  const L = box.l / SCALE;
-  const W = box.w / SCALE;
-  const H = box.h / SCALE;
-  const group = new THREE.Group();
-
-  const baseColor = new THREE.Color(box.color.hex);
-  // Boost saturation for white-background visibility
-  const boostColor = (c, amount) => {
-    const h = {}; const s = {}; const l = {};
-    c.getHSL(h);
-    return new THREE.Color().setHSL(h.h, Math.min(1, h.s * 1.4 + 0.1), Math.max(0, l.l = h.l * 0.8));
-  };
-
-  const faceMats = [
-    new THREE.MeshStandardMaterial({ color: baseColor.clone().multiplyScalar(0.65), roughness: 0.55, metalness: 0.25 }),
-    new THREE.MeshStandardMaterial({ color: baseColor.clone().multiplyScalar(0.65), roughness: 0.55, metalness: 0.25 }),
-    new THREE.MeshStandardMaterial({ color: baseColor.clone().multiplyScalar(1.2),  roughness: 0.45, metalness: 0.25 }),
-    new THREE.MeshStandardMaterial({ color: baseColor.clone().multiplyScalar(0.45), roughness: 0.65, metalness: 0.25 }),
-    new THREE.MeshStandardMaterial({ color: baseColor.clone().multiplyScalar(0.80), roughness: 0.55, metalness: 0.25 }),
-    new THREE.MeshStandardMaterial({ color: baseColor.clone().multiplyScalar(0.80), roughness: 0.55, metalness: 0.25 }),
-  ];
-
-  const geo = new THREE.BoxGeometry(W, H, L);
-  const mesh = new THREE.Mesh(geo, faceMats);
-  mesh.castShadow = true;
-  mesh.receiveShadow = true;
-  group.add(mesh);
-
-  // Dark outline for visibility on white
-  const outlineGeo = new THREE.BoxGeometry(W + 0.04, H + 0.04, L + 0.04);
-  const outlineMat = new THREE.MeshStandardMaterial({ color: 0x334466, roughness: 1, metalness: 0 });
-  const outline = new THREE.Mesh(outlineGeo, outlineMat);
-  outline.position.y = -0.02;
-  group.add(outline);
-  outline.renderOrder = -1;
-
-  const edgeGeo = new THREE.EdgesGeometry(geo);
-  const edgeMat = new THREE.LineBasicMaterial({ color: 0x334466, transparent: true, opacity: 0.5 });
-  group.add(new THREE.LineSegments(edgeGeo, edgeMat));
-
-  // Soft shadow ellipse under box
-  const shadowGeo = new THREE.CircleGeometry(Math.max(W, L) * 0.5, 32);
-  const shadowMat = new THREE.MeshBasicMaterial({ color: 0x334466, transparent: true, opacity: 0.12, depthWrite: false });
-  const shadow = new THREE.Mesh(shadowGeo, shadowMat);
-  shadow.rotation.x = -Math.PI / 2;
-  shadow.position.y = -H / 2 + 0.02;
-  group.add(shadow);
-
-  // Label on top face
-  const labelCanvas = makeBoxLabel(box);
-  const labelTex = new THREE.CanvasTexture(labelCanvas);
-  const labelGeo = new THREE.PlaneGeometry(W * 0.85, L * 0.85);
-  const labelMat = new THREE.MeshStandardMaterial({ map: labelTex, transparent: true, opacity: 0.92 });
-  const labelMesh = new THREE.Mesh(labelGeo, labelMat);
-  labelMesh.rotation.x = -Math.PI / 2;
-  labelMesh.position.y = H / 2 + 0.02;
-  group.add(labelMesh);
-
-  // Height indicator bar on side face
-  const barCanvas = document.createElement('canvas');
-  barCanvas.width = 64; barCanvas.height = 64;
-  const bctx = barCanvas.getContext('2d');
-  bctx.fillStyle = 'rgba(0,0,0,0)';
-  bctx.clearRect(0, 0, 64, 64);
-  bctx.fillStyle = 'rgba(255,255,255,0.7)';
-  bctx.fillRect(28, 4, 8, 56);
-  bctx.fillStyle = baseColor.getStyle();
-  const hFrac = Math.min(1, box.h / 1500);
-  bctx.fillRect(28, 4 + 56 * (1 - hFrac), 8, 56 * hFrac);
-  const barTex = new THREE.CanvasTexture(barCanvas);
-  const barGeo = new THREE.PlaneGeometry(W * 0.3, H * 0.9);
-  const barMat = new THREE.MeshStandardMaterial({ map: barTex, transparent: true, opacity: 0.8 });
-  const barMesh = new THREE.Mesh(barGeo, barMat);
-  barMesh.position.set(-W / 2 + W * 0.15, 0, L / 2 + 0.01);
-  group.add(barMesh);
-
-  // Place at specified position (default to ground if y not specified)
-  const posY = box.y !== undefined ? box.y / SCALE : H / 2;
-  group.position.set(box.x / SCALE, posY, box.z / SCALE);
-  return group;
-}
-
-function makeBoxLabel(box) {
-  const c = document.createElement('canvas');
-  c.width = 128; c.height = 128;
-  const ctx = c.getContext('2d');
-  // Semi-transparent dark overlay for readability
-  ctx.fillStyle = 'rgba(20,30,50,0.75)';
-  ctx.fillRect(4, 4, 120, 120);
-  ctx.fillStyle = 'rgba(255,255,255,0.95)';
-  ctx.font = 'bold 18px Courier New';
-  ctx.textAlign = 'center';
-  ctx.fillText(box.l.toString(), 64, 38);
-  ctx.fillText(box.w + 'w', 64, 64);
-  ctx.font = '14px Courier New';
-  ctx.fillStyle = 'rgba(200,220,255,0.75)';
-  ctx.fillText(box.h + 'h', 64, 90);
-  return c;
-}
-
-function updateBoxLabel(box) {
-  // Update the top label texture
-  box.mesh.traverse(child => {
-    if (child.isMesh && child.material.map && child.material.map.image && child.material.map.image.width === 128) {
-      child.material.map.dispose();
-      child.material.map = new THREE.CanvasTexture(makeBoxLabel(box));
-    }
-  });
-}
-
-function updateBoxPosition(box) {
-  box.x = box.mesh.position.x * SCALE;
-  box.z = box.mesh.position.z * SCALE;
-  box.y = box.mesh.position.y * SCALE;
-}
-
-// ===================== CONTAINER BUILDING =====================
-function buildContainer(c) {
-  if (containerGroup) scene.remove(containerGroup);
-  containerGroup = new THREE.Group();
-
-  const L = c.iL / SCALE;
-  const W = c.iW / SCALE;
-  const H = c.iH / SCALE;
-  const t = 0.15;
-
-  // BLACK container materials
-  const wallMat = new THREE.MeshStandardMaterial({
-    color: 0x111111, roughness: 0.6, metalness: 0.4,
-    transparent: true, opacity: 0.55, side: THREE.DoubleSide,
-  });
-  const floorMat = new THREE.MeshStandardMaterial({
-    color: 0x1a1a1a, roughness: 0.8, metalness: 0.3,
-  });
-  const frameMat = new THREE.MeshStandardMaterial({
-    color: 0x222222, roughness: 0.5, metalness: 0.5,
-    transparent: true, opacity: 0.7,
-  });
-
-  // Floor
-  const floor = new THREE.Mesh(new THREE.BoxGeometry(W, t, L), floorMat);
-  floor.position.y = -t / 2;
-  floor.receiveShadow = true;
-  containerGroup.add(floor);
-
-  // Floor surface
-  const floorSurfaceMat = new THREE.MeshStandardMaterial({
-    color: 0x222222, roughness: 0.8, metalness: 0.2,
-  });
-  const floorSurface = new THREE.Mesh(new THREE.PlaneGeometry(W - 0.1, L - 0.1), floorSurfaceMat);
-  floorSurface.rotation.x = -Math.PI / 2;
-  floorSurface.position.y = 0.01;
-  floorSurface.receiveShadow = true;
-  containerGroup.add(floorSurface);
-
-  // Grid lines on floor
-  const gridMat = new THREE.MeshStandardMaterial({ color: 0x555555, roughness: 0.6, transparent: true, opacity: 0.6 });
-  for (let x = -W/2 + 1; x < W/2; x += 1) {
-    const line = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.01, L), gridMat);
-    line.position.set(x, 0.005, 0);
-    containerGroup.add(line);
-  }
-  for (let z = -L/2 + 1; z < L/2; z += 1) {
-    const line = new THREE.Mesh(new THREE.BoxGeometry(W, 0.01, 0.03), gridMat);
-    line.position.set(0, 0.005, z);
-    containerGroup.add(line);
-  }
-
-  // 3 faces: floor (done), back wall (z-), left wall (x-)
-  // Back wall (z-)
-  const backWall = new THREE.Mesh(new THREE.BoxGeometry(W, H, t), wallMat);
-  backWall.position.set(0, H/2, -L/2 - t/2);
-  backWall.castShadow = true;
-  backWall.receiveShadow = true;
-  containerGroup.add(backWall);
-
-  // Left wall (x-)
-  const leftWall = new THREE.Mesh(new THREE.BoxGeometry(t, H, L), wallMat);
-  leftWall.position.set(-W/2 - t/2, H/2, 0);
-  leftWall.castShadow = true;
-  leftWall.receiveShadow = true;
-  containerGroup.add(leftWall);
-
-  // Edge lines for front (open) boundary
-  const edgeMat = new THREE.LineBasicMaterial({ color: 0x888888, transparent: true, opacity: 0.5 });
-  // Front-bottom edge
-  const fEdgeGeo = new THREE.BufferGeometry().setFromPoints([
-    new THREE.Vector3(-W/2, 0, L/2), new THREE.Vector3(W/2, 0, L/2)
-  ]);
-  containerGroup.add(new THREE.Line(fEdgeGeo, edgeMat));
-  // Front-right vertical edge
-  const frEdgeGeo = new THREE.BufferGeometry().setFromPoints([
-    new THREE.Vector3(W/2, 0, L/2), new THREE.Vector3(W/2, H, L/2)
-  ]);
-  containerGroup.add(new THREE.Line(frEdgeGeo, edgeMat));
-  // Right-bottom edge
-  const rEdgeGeo = new THREE.BufferGeometry().setFromPoints([
-    new THREE.Vector3(W/2, 0, -L/2), new THREE.Vector3(W/2, 0, L/2)
-  ]);
-  containerGroup.add(new THREE.Line(rEdgeGeo, edgeMat));
-
-  // Corner posts at back corners
-  const postMat = new THREE.MeshStandardMaterial({ color: 0x333333, roughness: 0.4, metalness: 0.6, transparent: true, opacity: 0.8 });
-  const postBL = new THREE.Mesh(new THREE.BoxGeometry(t * 2, H, t * 2), postMat);
-  postBL.position.set(-W/2, H/2, -L/2);
-  postBL.castShadow = true;
-  containerGroup.add(postBL);
-  const postBR = new THREE.Mesh(new THREE.BoxGeometry(t * 2, H, t * 2), postMat);
-  postBR.position.set(W/2, H/2, -L/2);
-  postBR.castShadow = true;
-  containerGroup.add(postBR);
-
-  // Container label on back wall
-  const labelCanvas = document.createElement('canvas');
-  labelCanvas.width = 512; labelCanvas.height = 128;
-  const ctx = labelCanvas.getContext('2d');
-  ctx.fillStyle = '#111';
-  ctx.fillRect(0, 0, 512, 128);
-  ctx.fillStyle = '#4ade80';
-  ctx.font = 'bold 42px Courier New';
-  ctx.textAlign = 'center';
-  ctx.fillText(c.short + ' | ' + (c.iL/1000).toFixed(1) + 'm × ' + (c.iW/1000).toFixed(1) + 'm × ' + (c.iH/1000).toFixed(1) + 'm', 256, 52);
-  ctx.fillStyle = '#888';
-  ctx.font = '20px Courier New';
-  ctx.fillText('MAX ' + c.maxWt + ' kg', 256, 100);
-  const labelTex = new THREE.CanvasTexture(labelCanvas);
-  const labelMesh = new THREE.Mesh(
-    new THREE.PlaneGeometry(W * 0.8, H * 0.25),
-    new THREE.MeshStandardMaterial({ map: labelTex, transparent: true, side: THREE.DoubleSide })
-  );
-  labelMesh.position.set(0, H * 0.6, -L/2 + 0.01);
-  containerGroup.add(labelMesh);
-
-  scene.add(containerGroup);
-
-  camera.position.set(Math.max(L, W) * 1.2, Math.max(L, W) * 1.0, Math.max(L, W) * 1.4);
-  controls.target.set(0, H * 0.3, 0);
-  controls.update();
-}
-
-// ===================== BOX MANAGEMENT =====================
-function addBox() {
-  const l = parseFloat(document.getElementById('inp-l').value);
-  const w = parseFloat(document.getElementById('inp-w').value);
-  const h = parseFloat(document.getElementById('inp-h').value);
-  const wt = parseFloat(document.getElementById('inp-wt').value);
-
-  if (!l || !w || !h || !wt) { showToast('请填写所有参数', 'error'); return; }
-  if (l < 50 || w < 50 || h < 50) { showToast('尺寸最小50mm', 'error'); return; }
-
-  const c = CONTAINERS[containerIdx];
-  if (l > c.iL || w > c.iW || h > c.iH) {
-    showToast(`超出集装箱！最大: ${c.iL}×${c.iW}×${c.iH}mm`, 'error');
-    return;
-  }
-
-  pendingBoxes.push({ id: ++boxIdCounter, l, w, h, wt, color: selectedColor });
-  renderPendingList();
-  updateAllStats();
-  ['inp-l','inp-w','inp-h','inp-wt'].forEach(id => document.getElementById(id).value = '');
-}
-
-function quickAddBoxes() {
-  const l = parseFloat(document.getElementById('quick-l').value);
-  const w = parseFloat(document.getElementById('quick-w').value);
-  const h = parseFloat(document.getElementById('quick-h').value);
-  const wt = parseFloat(document.getElementById('quick-wt').value);
-  const qty = parseInt(document.getElementById('quick-qty').value) || 1;
-  const colorHex = document.getElementById('quick-color').value;
-  const color = COLORS.find(c => c.hex === colorHex) || COLORS[0];
-
-  if (!l || !w || !h || !wt) { showToast('请填写所有参数', 'error'); return; }
-  if (l < 50 || w < 50 || h < 50) { showToast('尺寸最小50mm', 'error'); return; }
-
-  const c = CONTAINERS[containerIdx];
-  if (l > c.iL || w > c.iW || h > c.iH) {
-    showToast(`超出集装箱！最大: ${c.iL}×${c.iW}×${c.iH}mm`, 'error');
-    return;
-  }
-
-  for (let i = 0; i < qty; i++) {
-    pendingBoxes.push({ id: ++boxIdCounter, l, w, h, wt, color: color });
-  }
-  renderPendingList();
-  updateAllStats();
-  showToast(`✅ 已添加 ${qty} 个 ${l}×${w}×${h}mm 纸箱`, 'success');
-}
-
-// 直接装箱：批量添加并自动放置到集装箱内
-function quickAddAndLoad() {
-  const l = parseFloat(document.getElementById('quick-l').value);
-  const w = parseFloat(document.getElementById('quick-w').value);
-  const h = parseFloat(document.getElementById('quick-h').value);
-  const wt = parseFloat(document.getElementById('quick-wt').value);
-  const qty = parseInt(document.getElementById('quick-qty').value) || 1;
-  const colorHex = document.getElementById('quick-color').value;
-  const color = COLORS.find(c => c.hex === colorHex) || COLORS[0];
-
-  if (!l || !w || !h || !wt) { showToast('请填写所有参数', 'error'); return; }
-  if (l < 50 || w < 50 || h < 50) { showToast('尺寸最小50mm', 'error'); return; }
-
-  const c = CONTAINERS[containerIdx];
-  if (l > c.iL || w > c.iW || h > c.iH) {
-    showToast(`超出集装箱！最大: ${c.iL}×${c.iW}×${c.iH}mm`, 'error');
-    return;
-  }
-
-  let successCount = 0;
-  let failCount = 0;
-
-  for (let i = 0; i < qty; i++) {
-    const box = { id: ++boxIdCounter, l, w, h, wt, color: color };
-    
-    // 尝试自动放置
-    const pos = findBestPosition(box);
-    if (pos) {
-      box.x = pos.x;
-      box.z = pos.z;
-      box.y = pos.y;
-      box.mesh = createBoxMesh(box);
-      scene.add(box.mesh);
-      placedBoxes.push(box);
-      successCount++;
-    } else {
-      // 放不进去了，加入待装箱列表
-      pendingBoxes.push(box);
-      failCount++;
-    }
-  }
-
-  renderPendingList();
-  updateAllStats();
-  document.getElementById('empty-hint').style.display = 'none';
-  
-  if (failCount === 0) {
-    showToast(`✅ 已直接装箱 ${successCount} 个`, 'success');
-  } else if (successCount === 0) {
-    showToast(`⚠ 集装箱已满，${failCount} 个加入待装箱`, 'warning');
-  } else {
-    showToast(`✅ 装箱 ${successCount} 个，${failCount} 个加入待装箱`, 'info');
-  }
-}
-
-// 为箱子寻找最佳放置位置（实际装箱逻辑：从左到右、从前到后铺满一层，再铺第二层）
-function findBestPosition(box) {
-  const c = CONTAINERS[containerIdx];
-  const halfW = c.iW / 2 / SCALE;
-  const halfL = c.iL / 2 / SCALE;
-  const boxHalfX = box.w / 2 / SCALE;
-  const boxHalfZ = box.l / 2 / SCALE;
-  const H = c.iH / SCALE;
-  const boxHalfH = box.h / 2 / SCALE;
-
-  // 搜索步长
-  const stepX = Math.max(box.w / SCALE, 50 / SCALE);
-  const stepZ = Math.max(box.l / SCALE, 50 / SCALE);
-
-  const maxCol = Math.floor((c.iW - box.w) / Math.max(box.w, 50)) + 1;
-  const maxRow = Math.floor((c.iL - box.l) / Math.max(box.l, 50)) + 1;
-
-  // ===== 实际装箱逻辑：从里到外 -> 从下而上 -> 从左到右 =====
-  // 策略：
-  // 1. 先在Z最里面（后门）放箱子
-  // 2. 在Y地面层，从左到右（X方向）排满
-  // 3. X排满后，Y往上堆，再从左到右排满
-  // 4. 这一排（Z固定）装满后，Z往外走（往前门方向），开始第二排
-
-  const maxLayer = Math.floor(c.iH / box.h);
-
-  // ===== 实际装箱逻辑：Z固定(最里面) → Y(地面层先填满X) → 再堆叠 =====
-  // 策略（选项B）：
-  // 1. Z固定在最里面（后门）
-  // 2. 先在地面层（Y=0）从左到右填满所有X位置
-  // 3. 地面层填满后，再在同一X位置往上堆叠（Y+1）
-  // 4. 这样实现：地面从左到右排满，然后再堆第二层
-
-  // Z固定在最里面（row = 0）
-  const tryZ = -halfL + boxHalfZ;
-
-  // 第一层：地面层（layer=0），从左到右填满所有X
-  for (let col = 0; col < maxCol; col++) {
-    const tryX = -halfW + boxHalfX + col * stepX;
-    if (tryX + boxHalfX > halfW) continue;
-
-    const tryY = boxHalfH; // 地面层
-
-    // 检查地面层该X位置是否可以放置
-    let hasCollision = false;
-    for (const b of placedBoxes) {
-      if (boxesOverlapAt(box, tryX, tryY, tryZ, b)) {
-        hasCollision = true;
-        break;
-      }
-    }
-
-    if (!hasCollision) {
-      return { x: tryX * SCALE, y: tryY * SCALE, z: tryZ * SCALE };
-    }
-  }
-
-  // 第二层及以上：对于每个X，往上堆叠
-  for (let layer = 1; layer < maxLayer; layer++) {
-    const tryY = layer * box.h / SCALE + boxHalfH;
-    if (tryY + boxHalfH > H) break;
-
-    for (let col = 0; col < maxCol; col++) {
-      const tryX = -halfW + boxHalfX + col * stepX;
-      if (tryX + boxHalfX > halfW) continue;
-
-      // 检查该位置是否可以放置
-      let hasCollision = false;
-      for (const b of placedBoxes) {
-        if (boxesOverlapAt(box, tryX, tryY, tryZ, b)) {
-          hasCollision = true;
-          break;
-        }
-      }
-
-      if (!hasCollision && hasPhysicalSupportFast(box, tryX, tryZ, tryY)) {
-        return { x: tryX * SCALE, y: tryY * SCALE, z: tryZ * SCALE };
-      }
-    }
-  }
-
-  // 如果最里面一排装满了，才考虑第二排（Z往外）
-  for (let row = 1; row < maxRow; row++) {
-    const tryZ2 = -halfL + boxHalfZ + row * stepZ;
-    if (tryZ2 + boxHalfZ > halfL) continue;
-
-    // 同样先地面层再堆叠
-    for (let col = 0; col < maxCol; col++) {
-      const tryX = -halfW + boxHalfX + col * stepX;
-      if (tryX + boxHalfX > halfW) continue;
-
-      const tryY = boxHalfH;
-      let hasCollision = false;
-      for (const b of placedBoxes) {
-        if (boxesOverlapAt(box, tryX, tryY, tryZ2, b)) {
-          hasCollision = true;
-          break;
-        }
-      }
-      if (!hasCollision) {
-        return { x: tryX * SCALE, y: tryY * SCALE, z: tryZ2 * SCALE };
-      }
-    }
-
-    for (let layer = 1; layer < maxLayer; layer++) {
-      const tryY = layer * box.h / SCALE + boxHalfH;
-      if (tryY + boxHalfH > H) break;
-
-      for (let col = 0; col < maxCol; col++) {
-        const tryX = -halfW + boxHalfX + col * stepX;
-        if (tryX + boxHalfX > halfW) continue;
-
-        let hasCollision = false;
-        for (const b of placedBoxes) {
-          if (boxesOverlapAt(box, tryX, tryY, tryZ2, b)) {
-            hasCollision = true;
-            break;
-          }
-        }
-        if (!hasCollision && hasPhysicalSupportFast(box, tryX, tryZ2, tryY)) {
-          return { x: tryX * SCALE, y: tryY * SCALE, z: tryZ2 * SCALE };
-        }
-      }
-    }
-  }
-
-  // 如果网格搜索没找到，尝试精细搜索
-  const fineStep = 50 / SCALE;
-  for (let z = -halfL + boxHalfZ; z <= halfL - boxHalfZ; z += fineStep) {
-    for (let x = -halfW + boxHalfX; x <= halfW - boxHalfX; x += fineStep) {
-      for (let layer = 0; layer < maxLayer; layer++) {
-        const tryY = layer * box.h / SCALE + boxHalfH;
-        if (tryY + boxHalfH > H) break;
-
-        let hasCollision = false;
-        for (const b of placedBoxes) {
-          if (boxesOverlapAt(box, x, tryY, z, b)) {
-            hasCollision = true;
-            break;
-          }
-        }
-
-        if (!hasCollision) {
-          if (layer === 0 || hasPhysicalSupportFast(box, x, z, tryY)) {
-            return { x: x * SCALE, y: tryY * SCALE, z: z * SCALE };
-          }
-        }
-      }
-    }
-  }
-
-  return null;
-}
-
-// 快速检查两个箱子在指定位置是否重叠（不创建mesh）
-function boxesOverlapAt(boxA, ax, ay, az, boxB) {
-  const aHalfW = (boxA.w / SCALE) / 2;
-  const aHalfH = (boxA.h / SCALE) / 2;
-  const aHalfL = (boxA.l / SCALE) / 2;
-  const bHalfW = (boxB.w / SCALE) / 2;
-  const bHalfH = (boxB.h / SCALE) / 2;
-  const bHalfL = (boxB.l / SCALE) / 2;
-  
-  const bx = boxB.mesh.position.x;
-  const by = boxB.mesh.position.y;
-  const bz = boxB.mesh.position.z;
-  
-  if (ax + aHalfW <= bx - bHalfW || ax - aHalfW >= bx + bHalfW) return false;
-  if (ay + aHalfH <= by - bHalfH || ay - aHalfH >= by + bHalfH) return false;
-  if (az + aHalfL <= bz - bHalfL || az - aHalfL >= bz + bHalfL) return false;
-  
-  return true;
-}
-
-// 快速检查物理支撑（不创建mesh）
-function hasPhysicalSupportFast(box, x, z, y) {
-  const boxHalfW = (box.w / SCALE) / 2;
-  const boxHalfL = (box.l / SCALE) / 2;
-  const boxBottom = y - (box.h / SCALE) / 2;
-  
-  for (const b of placedBoxes) {
-    const bTop = b.mesh.position.y + (b.h / SCALE) / 2;
-    if (Math.abs(bTop - boxBottom) > 0.01) continue;
-    
-    const bHalfW = (b.w / SCALE) / 2;
-    const bHalfL = (b.l / SCALE) / 2;
-    const bx = b.mesh.position.x;
-    const bz = b.mesh.position.z;
-    
-    const xOverlap = (x - boxHalfW < bx + bHalfW) && (x + boxHalfW > bx - bHalfW);
-    const zOverlap = (z - boxHalfL < bz + bHalfL) && (z + boxHalfL > bz - bHalfL);
-    
-    if (xOverlap && zOverlap) return true;
-  }
-  
-  return false;
-}
-
-// 检查箱子在指定位置是否有物理支撑（至少部分落在其他箱子上）
-function hasPhysicalSupport(box, x, z, y) {
-  const boxHalfW = (box.w / SCALE) / 2;
-  const boxHalfL = (box.l / SCALE) / 2;
-  const boxBottom = y - (box.h / SCALE) / 2;
-  
-  // 检查是否有箱子在正下方（接触或非常接近）
-  for (const b of placedBoxes) {
-    const bTop = b.mesh.position.y + (b.h / SCALE) / 2;
-    
-    // 如果不在同一高度层，跳过
-    if (Math.abs(bTop - boxBottom) > 0.01) continue;
-    
-    // 检查XZ投影是否有重叠
-    const bHalfW = (b.w / SCALE) / 2;
-    const bHalfL = (b.l / SCALE) / 2;
-    const bx = b.mesh.position.x;
-    const bz = b.mesh.position.z;
-    
-    // X方向重叠
-    const xOverlap = (x - boxHalfW < bx + bHalfW) && (x + boxHalfW > bx - bHalfW);
-    // Z方向重叠
-    const zOverlap = (z - boxHalfL < bz + bHalfL) && (z + boxHalfL > bz - bHalfL);
-    
-    if (xOverlap && zOverlap) {
-      return true; // 有支撑
-    }
-  }
-  
-  return false;
-}
-
-function placeBox(box, pendingIdx) {
-  const c = CONTAINERS[containerIdx];
-  const totalWt = placedBoxes.reduce((s, b) => s + b.wt, 0) + box.wt;
-  if (totalWt > c.maxWt) { showToast(`超重！最大${c.maxWt}kg`, 'error'); return; }
-
-  box.x = 0;
-  box.z = 0;
-  box.y = box.h / 2; // bottom at y=0
-  box.mesh = createBoxMesh(box);
-  scene.add(box.mesh);
-  placedBoxes.push(box);
-  pendingBoxes.splice(pendingIdx, 1);
-  renderPendingList();
-  selectBox(box);
-  updateAllStats();
-  document.getElementById('empty-hint').style.display = 'none';
-  showToast(`✅ #${box.id} 已装载`, 'success');
-}
-
-function removeBox(id) {
-  const idx = placedBoxes.findIndex(b => b.id === id);
-  if (idx < 0) return;
-  scene.remove(placedBoxes[idx].mesh);
-  placedBoxes.splice(idx, 1);
-  if (selectedBox && selectedBox.id === id) selectedBox = null;
-  updateAllStats();
-  if (placedBoxes.length === 0) document.getElementById('empty-hint').style.display = 'block';
-}
-
-// ===================== DRAG FROM LIST =====================
-function startPendingDrag(e, idx) {
-  e.dataTransfer.setDragImage(new Image(), 0, 0);
-  pendingDragIdx = idx;
-  hasMoved = false;
-  e.dataTransfer.effectAllowed = 'copy';
-  const el = e.target.closest('.pending-item');
-  if (el) el.style.opacity = '0.5';
-  document.getElementById('empty-hint').style.display = 'none';
-}
-
-function endPendingDrag(e) {
-  pendingDragIdx = -1;
-  document.querySelectorAll('.pending-item').forEach(el => el.style.opacity = '1');
-}
-
-function onViewerDragOver(e) {
-  e.preventDefault();
-  e.dataTransfer.dropEffect = 'copy';
-}
-
-function onViewerDrop(e) {
-  e.preventDefault();
-  if (pendingDragIdx < 0 || !pendingBoxes[pendingDragIdx]) return;
-
-  const box = pendingBoxes[pendingDragIdx];
-  const pos = getDropPosition(e);
-  if (pos) {
-    const c = CONTAINERS[containerIdx];
-    const halfW = c.iW / 2 / SCALE;
-    const halfL = c.iL / 2 / SCALE;
-    const boxHalfX = box.w / 2 / SCALE;
-    const boxHalfZ = box.l / 2 / SCALE;
-
-    let dropX = pos.x;
-    let dropZ = pos.z;
-    // Clamp to container bounds
-    dropX = Math.max(-halfW + boxHalfX, Math.min(halfW - boxHalfX, dropX));
-    dropZ = Math.max(-halfL + boxHalfZ, Math.min(halfL - boxHalfZ, dropZ));
-
-    box.x = dropX * SCALE;
-    box.z = dropZ * SCALE;
-    box.y = box.h / 2;
-    box.mesh = createBoxMesh(box);
-    
-    // Check collision before adding
-    if (checkBoxCollision(box)) {
-      scene.remove(box.mesh);
-      showToast('⚠ 该位置与其他箱子重叠，请调整位置', 'error');
-      pendingDragIdx = -1;
-      document.querySelectorAll('.pending-item').forEach(el => el.style.opacity = '1');
-      return;
-    }
-    
-    scene.add(box.mesh);
-    placedBoxes.push(box);
-    pendingBoxes.splice(pendingDragIdx, 1);
-    renderPendingList();
-    selectBox(box);
-    updateAllStats();
-    showToast(`✅ #${box.id} 已装载`, 'success');
-  }
-  pendingDragIdx = -1;
-  document.querySelectorAll('.pending-item').forEach(el => el.style.opacity = '1');
-}
-
-function getDropPosition(e) {
-  const viewer = document.getElementById('viewer');
-  const rect = viewer.getBoundingClientRect();
-  const mx = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-  const my = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-  mouse.set(mx, my);
-  raycaster.setFromCamera(mouse, camera);
-  const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
-  const pt = new THREE.Vector3();
-  return raycaster.ray.intersectPlane(plane, pt) ? pt : null;
-}
-
-// ===================== PENDING LIST =====================
-function renderPendingList() {
-  document.getElementById('pcount').textContent = `(${pendingBoxes.length})`;
-  const el = document.getElementById('pending-list');
-
-  if (pendingBoxes.length === 0) {
-    el.innerHTML = '<div style="color:var(--text2);font-size:11px;text-align:center;padding:16px 0;">暂无待装载纸箱</div>';
-    return;
-  }
-
-  el.innerHTML = pendingBoxes.map((box, idx) => `
-    <div class="pending-item"
-         draggable="true"
-         ondragstart="startPendingDrag(event, ${idx})"
-         ondragend="endPendingDrag(event)"
-         ondblclick="placeBoxDirectly(${idx})">
-      <div class="pi-color" style="background:${box.color.hex}"></div>
-      <div class="pi-info">
-        <strong>${box.l}×${box.w}×${box.h}</strong>
-        ${box.wt}kg | ${((box.l*box.w*box.h)/1e9).toFixed(3)}m³
-      </div>
-      <button class="pi-del" onclick="event.stopPropagation();removePending(${idx})">×</button>
-    </div>
-  `).join('');
-}
-
-function placeBoxDirectly(idx) {
-  if (idx < 0 || idx >= pendingBoxes.length) return;
-  const box = pendingBoxes[idx];
-
-  // 使用 findBestPosition 来找到最佳位置（支持堆叠）
-  const bestPos = findBestPosition(box);
-
-  if (!bestPos) {
-    showToast('⚠ 找不到不重叠的位置，请手动拖拽放置', 'error');
-    return;
-  }
-
-  // Place box at best position found
-  box.x = bestPos.x;
-  box.z = bestPos.z;
-  box.y = bestPos.y;
-  box.mesh = createBoxMesh(box);
-  scene.add(box.mesh);
-  placedBoxes.push(box);
-
-  pendingBoxes.splice(idx, 1);
-  renderPendingList();
-  selectBox(box);
-  updateAllStats();
-  document.getElementById('empty-hint').style.display = 'none';
-  showToast(`✅ #${box.id} 已装载`, 'success');
-}
-
-function removePending(idx) {
-  pendingBoxes.splice(idx, 1);
-  renderPendingList();
-  updateAllStats();
-}
-
-// ===================== STATS =====================
-function updateAllStats() {
-  const c = CONTAINERS[containerIdx];
-  const cVol = c.iL * c.iW * c.iH;
-  const cH = c.iH;
-
-  const placedVol = placedBoxes.reduce((s, b) => s + b.l * b.w * b.h, 0);
-  const placedWt = placedBoxes.reduce((s, b) => s + b.wt, 0);
-  const totalVol = placedVol + pendingBoxes.reduce((s, b) => s + b.l * b.w * b.h, 0);
-  const totalWt = placedWt + pendingBoxes.reduce((s, b) => s + b.wt, 0);
-
-  // Max Z (top of highest box)
-  const maxZ = placedBoxes.length > 0
-    ? Math.max(...placedBoxes.map(b => b.mesh.position.y * SCALE + b.h / 2))
-    : 0;
-
-  // Header
-  document.getElementById('h-total').textContent = placedBoxes.length + pendingBoxes.length;
-  document.getElementById('h-placed').textContent = placedBoxes.length;
-  document.getElementById('h-weight').innerHTML = `${totalWt.toFixed(0)}<span style="font-size:10px">kg</span>`;
-  document.getElementById('h-volume').innerHTML = `${(totalVol/1e9).toFixed(2)}<span style="font-size:7px">m³</span>`;
-  document.getElementById('h-usage').innerHTML = `${(placedVol / cVol * 100).toFixed(0)}<span style="font-size:10px">%</span>`;
-  document.getElementById('h-contWt').innerHTML = `${placedWt.toFixed(0)}<span style="font-size:10px">kg</span>`;
-  document.getElementById('h-maxZ').innerHTML = `${maxZ.toFixed(0)}<span style="font-size:10px">mm</span>`;
-
-  // Right panel
-  const vpct = (placedVol / cVol * 100).toFixed(1);
-  const wpct = Math.min((placedWt / c.maxWt * 100), 100).toFixed(1);
-  document.getElementById('vpct').textContent = vpct + '%';
-  document.getElementById('wpct').textContent = wpct + '%';
-  document.getElementById('vbar').style.width = vpct + '%';
-  const wbarEl = document.getElementById('wbar');
-  wbarEl.style.width = wpct + '%';
-  wbarEl.classList.toggle('warn', placedWt > c.maxWt * 0.9);
-
-  document.getElementById('s-vrem').textContent = ((cVol - placedVol) / 1e9).toFixed(2) + ' m³';
-  document.getElementById('s-wrem').textContent = Math.max(0, c.maxWt - placedWt).toFixed(0) + ' kg';
-
-  document.getElementById('s-pcount').textContent = placedBoxes.length;
-  document.getElementById('s-pvol').textContent = (placedVol / 1e9).toFixed(3) + ' m³';
-  document.getElementById('s-pwt').textContent = placedWt.toFixed(1) + ' kg';
-  document.getElementById('s-maxz').textContent = maxZ.toFixed(0) + ' mm';
-
-  document.getElementById('s-allcount').textContent = (placedBoxes.length + pendingBoxes.length) + ' 个';
-  document.getElementById('s-allvol').textContent = (totalVol / 1e9).toFixed(3) + ' m³';
-  document.getElementById('s-allwt').textContent = totalWt.toFixed(1) + ' kg';
-  document.getElementById('s-unloaded').textContent = pendingBoxes.length;
-
-  renderStackLayers();
-  renderColorBreakdown();
-
-  // Overflow
-  const warnEl = document.getElementById('overflow-warn');
-  if (placedWt > c.maxWt) {
-    warnEl.style.display = 'flex';
-    document.getElementById('overflow-text').textContent = `超载！${placedWt.toFixed(0)}kg > ${c.maxWt}kg`;
-  } else if (placedBoxes.length > 0 && placedVol / cVol > 0.97) {
-    warnEl.style.display = 'flex';
-    warnEl.style.borderColor = 'var(--accent)';
-    warnEl.style.color = 'var(--accent)';
-    warnEl.style.background = 'rgba(240,180,41,0.1)';
-    document.getElementById('overflow-text').textContent = '集装箱接近满载！';
-  } else {
-    warnEl.style.display = 'none';
-    warnEl.style.borderColor = 'var(--red)';
-    warnEl.style.color = 'var(--red)';
-    warnEl.style.background = 'rgba(248,81,73,0.12)';
-  }
-
-  document.getElementById('empty-hint').style.display = placedBoxes.length > 0 ? 'none' : 'block';
-}
-
-// Stacking layers: group boxes by their height level (bottom Y)
-function renderStackLayers() {
-  const el = document.getElementById('stack-layers');
-  if (placedBoxes.length === 0) {
-    el.innerHTML = '<div style="color:var(--text2);font-size:11px;text-align:center;padding:8px 0;">暂无装载数据</div>';
-    return;
-  }
-
-  // Group by height band (every 200mm)
-  const bandSize = 200;
-  const layers = {};
-  const c = CONTAINERS[containerIdx];
-  const cH = c.iH;
-
-  placedBoxes.forEach(b => {
-    const bottomY = Math.round(b.mesh.position.y * SCALE - b.h / 2);
-    const band = Math.floor(bottomY / bandSize) * bandSize;
-    if (!layers[band]) layers[band] = { count: 0, vol: 0, wt: 0, boxes: [] };
-    layers[band].count++;
-    layers[band].vol += b.l * b.w * b.h;
-    layers[band].wt += b.wt;
-    layers[band].boxes.push(b);
-  });
-
-  const sortedBands = Object.keys(layers).map(Number).sort((a, b) => a - b);
-  const maxVol = Math.max(...sortedBands.map(b => layers[b].vol));
-
-  el.innerHTML = sortedBands.map(band => {
-    const layer = layers[band];
-    const pct = (layer.vol / maxVol * 100).toFixed(0);
-    const colorPct = (band / cH * 100).toFixed(0);
-    const layerColor = `hsl(${200 + parseFloat(colorPct) * 0.5}, 60%, 55%)`;
-    const topY = (band + bandSize) / SCALE;
-    return `<div class="layer-row">
-      <div class="layer-num">${band}↑</div>
-      <div class="layer-bar">
-        <div class="layer-fill" style="width:${pct}%;background:${layerColor}"></div>
-      </div>
-      <div class="layer-count">${layer.count}箱</div>
-      <div class="layer-vol">${(layer.vol/1e9).toFixed(2)}m³</div>
-    </div>`;
-  }).join('');
-}
-
-function renderColorBreakdown() {
-  const el = document.getElementById('color-breakdown');
-  const stats = {};
-  placedBoxes.forEach(b => {
-    const k = b.color.hex;
-    if (!stats[k]) stats[k] = { count: 0, vol: 0, wt: 0, name: b.color.name };
-    stats[k].count++; stats[k].vol += b.l * b.w * b.h; stats[k].wt += b.wt;
-  });
-
-  const keys = Object.keys(stats);
-  if (keys.length === 0) {
-    el.innerHTML = '<div style="color:var(--text2);font-size:11px;text-align:center;padding:8px 0;">暂无数据</div>';
-    return;
-  }
-
-  const colorNames = { '#e53935': '红色', '#1e88e5': '蓝色', '#43a047': '绿色', '#fdd835': '黄色', '#fb8c00': '橙色', '#8e24aa': '紫色', '#00acc1': '青色', '#757575': '灰色', '#d81b60': '粉色', '#8d6e63': '棕色' };
-
-  el.innerHTML = keys.map(k => {
-    const s = stats[k];
-    return `<div class="cg">
-      <div class="cg-swatch" style="background:${k}"></div>
-      <div class="cg-info">
-        <strong>${colorNames[k] || s.name}</strong><br>
-        ${s.count}个 | ${(s.vol/1e9).toFixed(3)}m³ | ${s.wt.toFixed(1)}kg
-      </div>
-    </div>`;
-  }).join('');
-}
-
-// ===================== TOOLTIP =====================
-function updateTooltip(e, box) {
-  const tt = document.getElementById('tooltip');
-  if (!box) { tt.style.display = 'none'; return; }
-
-  const c = CONTAINERS[containerIdx];
-  const cH = c.iH;
-  const bottomY = (box.mesh.position.y * SCALE - box.h / 2).toFixed(0);
-  const topY = (box.mesh.position.y * SCALE + box.h / 2).toFixed(0);
-  const maxTop = cH;
-  const fillPct = (topY / maxTop * 100).toFixed(0);
-
-  // 坐标显示：以集装箱后门（最里面）左边为原点 (0,0)
-  const displayX = box.x + c.iW / 2; // X：左边=0，右边=iW
-  const displayZ = -box.z + c.iL / 2; // Z反转，后门=0，前门=iL
-  tt.innerHTML = `#${box.id} | ${box.l}×${box.w}×${box.h}mm<br>` +
-    `重量: ${box.wt}kg | 颜色: ${box.color.name}<br>` +
-    `${(box.l*box.w*box.h/1e9).toFixed(3)}m³ | 位置:(${displayX.toFixed(0)},${displayZ.toFixed(0)})mm`;
-
-  if (e) {
-    tt.style.left = (e.clientX + 12) + 'px';
-    tt.style.top = (e.clientY - 10) + 'px';
-  } else {
-    // Position near selected box on screen
-    const pos = box.mesh.position.clone().project(camera);
-    const viewer = document.getElementById('viewer').getBoundingClientRect();
-    tt.style.left = (viewer.left + (pos.x * 0.5 + 0.5) * viewer.width + 12) + 'px';
-    tt.style.top = (viewer.top + (-pos.y * 0.5 + 0.5) * viewer.height - 10) + 'px';
-  }
-  tt.style.display = 'block';
-}
-
-function hideTooltip() {
-  document.getElementById('tooltip').style.display = 'none';
-}
-
-// ===================== CONTAINER SELECTOR =====================
-function renderCtypeList() {
-  const el = document.getElementById('ctype-list');
-  el.className = 'ctype-list';
-  el.innerHTML = CONTAINERS.map((c, i) => `
-    <button class="ctype-btn ${i === containerIdx ? 'active' : ''}"
-            id="ctype-${c.id}" onclick="selectContainer('${c.id}')">
-      <div class="ctype-name">${c.short}</div>
-      <div class="ctype-spec">${c.iL}×${c.iW}×${c.iH}mm · ${c.maxWt}kg</div>
-    </button>
-  `).join('');
-}
-
-function selectContainer(id) {
-  if (!scene) return; // Guard: Three.js not initialized yet
-  placedBoxes.forEach(b => scene.remove(b.mesh));
-  placedBoxes = [];
-  pendingBoxes = [];
-  selectedBox = null;
-  packingQueue = [];
-  packingQueueInitialized = false;
-  renderPendingList();
-  containerIdx = CONTAINERS.findIndex(c => c.id === id);
-  buildContainer(CONTAINERS[containerIdx]);
-  updateAllStats();
-  document.querySelectorAll('.ctype-btn').forEach(b => b.classList.remove('active'));
-  const btn = document.getElementById('ctype-' + id);
-  if (btn) btn.classList.add('active');
-}
-
-// ===================== UTILITY =====================
-function showToast(msg, type = 'success') {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.className = `toast ${type} show`;
-  setTimeout(() => t.classList.remove('show'), 2500);
-}
-
-function clearAll() {
-  if (!confirm('确定清空所有数据？')) return;
-  placedBoxes.forEach(b => scene.remove(b.mesh));
-  placedBoxes = [];
-  pendingBoxes = [];
-  selectedBox = null;
-  packingQueue = [];
-  packingQueueInitialized = false;
-  renderPendingList();
-  updateAllStats();
-  showToast('已清空', 'success');
-}
-
-function exportData() {
-  const c = CONTAINERS[containerIdx];
-  const placedVol = placedBoxes.reduce((s, b) => s + b.l * b.w * b.h, 0);
-  const placedWt = placedBoxes.reduce((s, b) => s + b.wt, 0);
-  let text = `=== 集装箱3D装箱报告 ===\n`;
-  text += `集装箱: ${c.name}\n内尺寸: ${c.iL}×${c.iW}×${c.iH}mm\n最大载重: ${c.maxWt}kg\n`;
-  text += `已装载: ${placedBoxes.length}箱\n装载体积: ${(placedVol/1e9).toFixed(3)}m³\n`;
-  text += `装载重量: ${placedWt.toFixed(1)}kg\n利用率: ${(placedVol/(c.iL*c.iW*c.iH)*100).toFixed(1)}%\n\n`;
-  text += `明细:\n`;
-  placedBoxes.forEach((b, i) => {
-    const botY = (b.mesh.position.y * SCALE - b.h/2).toFixed(0);
-    const topY = (b.mesh.position.y * SCALE + b.h/2).toFixed(0);
-    // 坐标显示：以集装箱后门（最里面）为原点 (0,0)
-    const displayX = b.x + c.iW / 2; // X：左边=0，右边=iW
-    const displayZ = -b.z + c.iL / 2; // Z反转，后门=0，前门=iL
-    text += `${i+1}. ${b.l}×${b.w}×${b.h}mm | ${b.wt}kg | 颜色:${b.color.name} | 位置:(${displayX.toFixed(0)},${displayZ.toFixed(0)}) | Y:${botY}-${topY}mm\n`;
-  });
-  const blob = new Blob([text], { type: 'text/plain' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `container3d-${Date.now()}.txt`;
-  a.click();
-  showToast('已导出', 'success');
-}
-
-// ===================== PRESETS & COLOR PICKER =====================
-function renderPresets() {
-  const el = document.getElementById('presets');
-  el.innerHTML = PRESETS.map((p, i) => `
-    <button class="preset-btn" onclick="applyPreset(${i})">
-      <span class="preset-lbl">${p.label}</span>
-      <span class="preset-spec">${p.l}×${p.w}×${p.h}</span>
-    </button>
-  `).join('');
-}
-
-function applyPreset(idx) {
-  const p = PRESETS[idx];
-  // Fill quick add area for convenience
-  document.getElementById('quick-l').value = p.l;
-  document.getElementById('quick-w').value = p.w;
-  document.getElementById('quick-h').value = p.h;
-  document.getElementById('quick-wt').value = p.wt;
-  document.getElementById('quick-qty').value = 1;
-  document.getElementById('quick-l').focus();
-  showToast(`✅ 已填入 ${p.label} 尺寸，可修改数量后添加`, 'success');
-}
-
-function renderColorPicker() {
-  // Color picker is now a <select> element, no need to render dots
-  // This function is kept for compatibility but does nothing
+ const viewer = document.getElementById('viewer');
+ const canvas = document.getElementById('three-canvas');
+ 
+ if (!viewer || viewer.clientWidth === 0 || viewer.clientHeight === 0) {
+ initThreeRetries++;
+ if (initThreeRetries > 10) {
+ console.error('initThree failed: viewer has zero size');
+ return;
+ }
+ setTimeout(initThree, 100);
+ return;
+ }
+
+ scene = new THREE.Scene();
+ scene.fog = new THREE.FogExp2(0xf0f4f8, 0.004);
+
+ camera = new THREE.PerspectiveCamera(45, viewer.clientWidth / viewer.clientHeight, 0.1, 2000);
+ camera.position.set(25, 20, 30);
+
+ renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+ renderer.setSize(viewer.clientWidth, viewer.clientHeight);
+ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+ renderer.shadowMap.enabled = true;
+ renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+ renderer.toneMapping = THREE.ACESFilmicToneMapping;
+ renderer.toneMappingExposure = 1.2;
+
+ controls = new THREE.OrbitControls(camera, renderer.domElement);
+ controls.enableDamping = true;
+ controls.dampingFactor = 0.08;
+ controls.minDistance = 5;
+ controls.maxDistance = 500;
+ controls.mouseButtons = {
+ LEFT: null,
+ MIDDLE: THREE.MOUSE.DOLLY,
+ RIGHT: THREE.MOUSE.ROTATE
+ };
+
+ raycaster = new THREE.Raycaster();
+ mouse = new THREE.Vector2();
+
+ // Lighting
+ scene.add(new THREE.AmbientLight(0xe8f0f8, 1.2));
+ const sun = new THREE.DirectionalLight(0xfff8f0, 2.0);
+ sun.position.set(30, 60, 25);
+ sun.castShadow = true;
+ sun.shadow.mapSize.width = 2048;
+ sun.shadow.mapSize.height = 2048;
+ scene.add(sun);
+
+ const fill = new THREE.DirectionalLight(0xc0d8ff, 0.6);
+ fill.position.set(-20, 10, -10);
+ scene.add(fill);
+
+ // Ground
+ const groundGeo = new THREE.PlaneGeometry(500, 500);
+ const groundMat = new THREE.MeshStandardMaterial({ color: 0xf4f6f9, roughness: 0.95 });
+ const groundMesh = new THREE.Mesh(groundGeo, groundMat);
+ groundMesh.rotation.x = -Math.PI / 2;
+ groundMesh.position.y = -0.1;
+ groundMesh.receiveShadow = true;
+ scene.add(groundMesh);
+
+ const gridHelper = new THREE.GridHelper(200, 40, 0xd0d8e0, 0xe8eef4);
+ scene.add(gridHelper);
+
+ buildContainer(CONTAINERS[containerIdx]);
+ animate();
+
+ // Events
+ canvas.addEventListener('mousedown', onMouseDown);
+ canvas.addEventListener('mousemove', onMouseMove);
+ canvas.addEventListener('mouseup', onMouseUp);
+ canvas.addEventListener('wheel', onWheel, { passive: false });
+ canvas.addEventListener('contextmenu', e => e.preventDefault());
+ window.addEventListener('resize', onResize);
+ viewer.addEventListener('dblclick', onViewerDblClick);
+ document.addEventListener('keydown', onKeyDown);
+ document.addEventListener('keyup', onKeyUp);
+ canvas.addEventListener('touchstart', onTouchStart, { passive: false });
+ canvas.addEventListener('touchmove', onTouchMove, { passive: false });
+ canvas.addEventListener('touchend', onTouchEnd, { passive: false });
+ 
+ console.log('initThree complete');
 }
 
 // ===================== ANIMATE =====================
 function animate() {
-  requestAnimationFrame(animate);
-  controls.update();
-  renderer.render(scene, camera);
+ requestAnimationFrame(animate);
+ if (controls) controls.update();
+ if (renderer && scene && camera) renderer.render(scene, camera);
 }
+
+// ===================== CONTAINER =====================
+function buildContainer(c) {
+ if (containerGroup) scene.remove(containerGroup);
+ containerGroup = new THREE.Group();
+
+ const W = c.iW / SCALE;
+ const H = c.iH / SCALE;
+ const L = c.iL / SCALE;
+ const t = 0.05;
+
+ const wallMat = new THREE.MeshStandardMaterial({
+ color: 0x222222, roughness: 0.5, metalness: 0.5, transparent: true, opacity: 0.7
+ });
+
+ // Floor
+ const floor = new THREE.Mesh(new THREE.BoxGeometry(W, t, L), wallMat);
+ floor.position.y = -t / 2;
+ floor.receiveShadow = true;
+ containerGroup.add(floor);
+
+ // Back wall
+ const backWall = new THREE.Mesh(new THREE.BoxGeometry(W, H, t), wallMat);
+ backWall.position.set(0, H/2, -L/2 - t/2);
+ containerGroup.add(backWall);
+
+ // Left wall
+ const leftWall = new THREE.Mesh(new THREE.BoxGeometry(t, H, L), wallMat);
+ leftWall.position.set(-W/2 - t/2, H/2, 0);
+ containerGroup.add(leftWall);
+
+ scene.add(containerGroup);
+}
+
+// ===================== BOX MESH =====================
+function createBoxMesh(box) {
+ const group = new THREE.Group();
+ const w = box.w / SCALE;
+ const h = box.h / SCALE;
+ const l = box.l / SCALE;
+
+ const color = new THREE.Color(box.color);
+ const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.6, metalness: 0.1 });
+ const geo = new THREE.BoxGeometry(w, h, l);
+ const mesh = new THREE.Mesh(geo, mat);
+ mesh.castShadow = true;
+ mesh.receiveShadow = true;
+ group.add(mesh);
+
+ // Edges
+ const edges = new THREE.EdgesGeometry(geo);
+ const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x000000, linewidth: 1 }));
+ group.add(line);
+
+ // Position
+ const posY = box.y !== undefined ? box.y / SCALE : h / 2;
+ group.position.set(box.x / SCALE, posY, box.z / SCALE);
+
+ return group;
+}
+// ===================== MOUSE EVENTS =====================
+function onMouseDown(e) {
+ if (e.button !== 0) return;
+ mouseDownPos = { x: e.clientX, y: e.clientY };
+ hasMoved = false;
+
+ const rect = renderer.domElement.getBoundingClientRect();
+ mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+ mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+ raycaster.setFromCamera(mouse, camera);
+
+ const boxMeshes = placedBoxes.map(b => b.mesh);
+ const hits = raycaster.intersectObjects(boxMeshes, true);
+
+ if (hits.length > 0) {
+ const hitMesh = hits[0].object;
+ function findParentBox(mesh) {
+ if (!mesh) return null;
+ for (const b of placedBoxes) {
+ if (b.mesh === mesh) return b;
+ }
+ if (mesh.parent) return findParentBox(mesh.parent);
+ return null;
+ }
+ const box = findParentBox(hitMesh);
+ if (box) {
+ e.stopPropagation();
+ controls.enabled = false;
+ dragBox = box;
+ isDraggingBox = true;
+ selectBox(box);
+
+ const boxWorldPos = new THREE.Vector3();
+ box.mesh.getWorldPosition(boxWorldPos);
+ const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -boxWorldPos.y);
+ const intersectPt = new THREE.Vector3();
+ raycaster.ray.intersectPlane(plane, intersectPt);
+ dragOffsetXZ.set(intersectPt.x - boxWorldPos.x, intersectPt.z - boxWorldPos.z);
+ highlightBox(box, true);
+ return;
+ }
+ }
+ controls.enabled = true;
+ deselectBox();
+}
+
+function onMouseMove(e) {
+ if (Math.abs(e.clientX - mouseDownPos.x) > 3 || Math.abs(e.clientY - mouseDownPos.y) > 3) {
+ hasMoved = true;
+ }
+
+ const rect = renderer.domElement.getBoundingClientRect();
+ mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+ mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+ raycaster.setFromCamera(mouse, camera);
+
+ if (isDraggingBox && dragBox) {
+ if (isShiftHeld) {
+ const deltaY = (e.clientY - mouseDownPos.y) * 0.01;
+ const newY = dragBox.mesh.position.y + deltaY;
+ if (tryMoveBox(dragBox, dragBox.mesh.position.x, newY, dragBox.mesh.position.z)) {
+ updateBoxPosition(dragBox);
+ updateXYZPanel(dragBox);
+ }
+ } else {
+ const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -dragBox.mesh.position.y);
+ const intersectPt = new THREE.Vector3();
+ raycaster.ray.intersectPlane(plane, intersectPt);
+ const c = CONTAINERS[containerIdx];
+ const halfW = c.iW / SCALE / 2;
+ const halfL = c.iL / SCALE / 2;
+ const boxHalfX = dragBox.w / SCALE / 2;
+ const boxHalfZ = dragBox.l / SCALE / 2;
+ let newX = THREE.MathUtils.clamp(intersectPt.x - dragOffsetXZ.x, -halfW + boxHalfX, halfW - boxHalfX);
+ let newZ = THREE.MathUtils.clamp(intersectPt.z - dragOffsetXZ.y, -halfL + boxHalfZ, halfL - boxHalfZ);
+ if (tryMoveBox(dragBox, newX, dragBox.mesh.position.y, newZ)) {
+ updateBoxPosition(dragBox);
+ updateXYZPanel(dragBox);
+ }
+ }
+ mouseDownPos = { x: e.clientX, y: e.clientY };
+ return;
+ }
+
+ // Hover detection
+ const boxMeshes = placedBoxes.map(b => b.mesh);
+ const hits = raycaster.intersectObjects(boxMeshes, true);
+ function findHoverBox(mesh) {
+ if (!mesh) return null;
+ for (const b of placedBoxes) {
+ if (b.mesh === mesh) return b;
+ }
+ if (mesh.parent) return findHoverBox(mesh.parent);
+ return null;
+ }
+ const newHover = hits.length > 0 ? findHoverBox(hits[0].object) : null;
+ if (newHover !== hoveredBox) {
+ if (hoveredBox && hoveredBox !== selectedBox) unhighlightBox(hoveredBox);
+ hoveredBox = newHover;
+ if (hoveredBox && hoveredBox !== selectedBox) highlightBox(hoveredBox, false);
+ updateCursor();
+ }
+ updateTooltip(e);
+}
+
+function onMouseUp(e) {
+ if (isDraggingBox && dragBox) {
+ let snapX = Math.round(dragBox.mesh.position.x * SCALE / 10) * 10 / SCALE;
+ let snapY = Math.round((dragBox.mesh.position.y - dragBox.h/SCALE/2) / SCALE * 10) * 10 / SCALE + dragBox.h/SCALE/2;
+ let snapZ = Math.round(dragBox.mesh.position.z * SCALE / 10) * 10 / SCALE;
+ if (tryMoveBox(dragBox, snapX, snapY, snapZ)) {
+ updateBoxPosition(dragBox);
+ updateXYZPanel(dragBox);
+ }
+ highlightBox(dragBox, false);
+ }
+ controls.enabled = true;
+ isDraggingBox = false;
+ dragBox = null;
+}
+
+function onWheel(e) {
+ e.preventDefault();
+ if (selectedBox) {
+ const delta = e.deltaY > 0 ? -20 : 20;
+ changeBoxHeight(selectedBox, delta);
+ } else {
+ if (e.deltaY < 0) camera.position.multiplyScalar(0.9);
+ else camera.position.multiplyScalar(1.1);
+ }
+}
+
+function onViewerDblClick(e) {
+ if (e.button !== 0) return;
+ const rect = renderer.domElement.getBoundingClientRect();
+ mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+ mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+ raycaster.setFromCamera(mouse, camera);
+ const boxMeshes = placedBoxes.map(b => b.mesh);
+ const hits = raycaster.intersectObjects(boxMeshes, true);
+ if (hits.length > 0) {
+ function findBox(mesh) {
+ if (!mesh) return null;
+ for (const b of placedBoxes) if (b.mesh === mesh) return b;
+ if (mesh.parent) return findBox(mesh.parent);
+ return null;
+ }
+ const box = findBox(hits[0].object);
+ if (box && confirm(`移除箱体 #${box.id}?`)) removeBox(box.id);
+ }
+}
+
+// ===================== TOUCH EVENTS =====================
+let touchDragBox = null;
+let touchStartPos = null;
+
+function onTouchStart(e) {
+ if (e.touches.length === 1) {
+ const touch = e.touches[0];
+ touchStartPos = { x: touch.clientX, y: touch.clientY };
+ const rect = renderer.domElement.getBoundingClientRect();
+ mouse.x = ((touch.clientX - rect.left) / rect.width) * 2 - 1;
+ mouse.y = -((touch.clientY - rect.top) / rect.height) * 2 + 1;
+ raycaster.setFromCamera(mouse, camera);
+ const boxMeshes = placedBoxes.map(b => b.mesh);
+ const hits = raycaster.intersectObjects(boxMeshes, true);
+ function findBox(mesh) {
+ if (!mesh) return null;
+ for (const b of placedBoxes) if (b.mesh === mesh) return b;
+ if (mesh.parent) return findBox(mesh.parent);
+ return null;
+ }
+ if (hits.length > 0) {
+ const box = findBox(hits[0].object);
+ if (box) {
+ e.preventDefault();
+ touchDragBox = box;
+ controls.enabled = false;
+ selectBox(box);
+ }
+ }
+ }
+}
+
+function onTouchMove(e) {
+ if (touchDragBox && e.touches.length === 1) {
+ e.preventDefault();
+ const touch = e.touches[0];
+ const rect = renderer.domElement.getBoundingClientRect();
+ mouse.x = ((touch.clientX - rect.left) / rect.width) * 2 - 1;
+ mouse.y = -((touch.clientY - rect.top) / rect.height) * 2 + 1;
+ raycaster.setFromCamera(mouse, camera);
+ const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -touchDragBox.mesh.position.y);
+ const intersectPt = new THREE.Vector3();
+ raycaster.ray.intersectPlane(plane, intersectPt);
+ const c = CONTAINERS[containerIdx];
+ const halfW = c.iW / SCALE / 2;
+ const halfL = c.iL / SCALE / 2;
+ const boxHalfX = touchDragBox.w / SCALE / 2;
+ const boxHalfZ = touchDragBox.l / SCALE / 2;
+ let newX = THREE.MathUtils.clamp(intersectPt.x, -halfW + boxHalfX, halfW - boxHalfX);
+ let newZ = THREE.MathUtils.clamp(intersectPt.z, -halfL + boxHalfZ, halfL - boxHalfZ);
+ if (tryMoveBox(touchDragBox, newX, touchDragBox.mesh.position.y, newZ)) {
+ updateBoxPosition(touchDragBox);
+ updateXYZPanel(touchDragBox);
+ }
+ }
+}
+
+function onTouchEnd(e) {
+ if (touchDragBox) {
+ let snapX = Math.round(touchDragBox.mesh.position.x * SCALE / 10) * 10 / SCALE;
+ let snapY = Math.round((touchDragBox.mesh.position.y - touchDragBox.h/SCALE/2) / SCALE * 10) * 10 / SCALE + touchDragBox.h/SCALE/2;
+ let snapZ = Math.round(touchDragBox.mesh.position.z * SCALE / 10) * 10 / SCALE;
+ tryMoveBox(touchDragBox, snapX, snapY, snapZ);
+ updateBoxPosition(touchDragBox);
+ }
+ controls.enabled = true;
+ touchDragBox = null;
+}
+// ===================== MOUSE EVENTS =====================
+function onMouseDown(e) {
+ if (e.button !== 0) return;
+ mouseDownPos = { x: e.clientX, y: e.clientY };
+ hasMoved = false;
+
+ const rect = renderer.domElement.getBoundingClientRect();
+ mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+ mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+ raycaster.setFromCamera(mouse, camera);
+
+ const boxMeshes = placedBoxes.map(b => b.mesh);
+ const hits = raycaster.intersectObjects(boxMeshes, true);
+
+ if (hits.length > 0) {
+ const hitMesh = hits[0].object;
+ function findParentBox(mesh) {
+ if (!mesh) return null;
+ for (const b of placedBoxes) {
+ if (b.mesh === mesh) return b;
+ }
+ if (mesh.parent) return findParentBox(mesh.parent);
+ return null;
+ }
+ const box = findParentBox(hitMesh);
+ if (box) {
+ e.stopPropagation();
+ controls.enabled = false;
+ dragBox = box;
+ isDraggingBox = true;
+ selectBox(box);
+
+ const boxWorldPos = new THREE.Vector3();
+ box.mesh.getWorldPosition(boxWorldPos);
+ const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -boxWorldPos.y);
+ const intersectPt = new THREE.Vector3();
+ raycaster.ray.intersectPlane(plane, intersectPt);
+ dragOffsetXZ.set(intersectPt.x - boxWorldPos.x, intersectPt.z - boxWorldPos.z);
+ highlightBox(box, true);
+ return;
+ }
+ }
+ controls.enabled = true;
+ deselectBox();
+}
+
+function onMouseMove(e) {
+ if (Math.abs(e.clientX - mouseDownPos.x) > 3 || Math.abs(e.clientY - mouseDownPos.y) > 3) {
+ hasMoved = true;
+ }
+
+ const rect = renderer.domElement.getBoundingClientRect();
+ mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+ mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+ raycaster.setFromCamera(mouse, camera);
+
+ if (isDraggingBox && dragBox) {
+ if (isShiftHeld) {
+ const deltaY = (e.clientY - mouseDownPos.y) * 0.01;
+ const newY = dragBox.mesh.position.y + deltaY;
+ if (tryMoveBox(dragBox, dragBox.mesh.position.x, newY, dragBox.mesh.position.z)) {
+ updateBoxPosition(dragBox);
+ updateXYZPanel(dragBox);
+ }
+ } else {
+ const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -dragBox.mesh.position.y);
+ const intersectPt = new THREE.Vector3();
+ raycaster.ray.intersectPlane(plane, intersectPt);
+ const c = CONTAINERS[containerIdx];
+ const halfW = c.iW / SCALE / 2;
+ const halfL = c.iL / SCALE / 2;
+ const boxHalfX = dragBox.w / SCALE / 2;
+ const boxHalfZ = dragBox.l / SCALE / 2;
+ let newX = THREE.MathUtils.clamp(intersectPt.x - dragOffsetXZ.x, -halfW + boxHalfX, halfW - boxHalfX);
+ let newZ = THREE.MathUtils.clamp(intersectPt.z - dragOffsetXZ.y, -halfL + boxHalfZ, halfL - boxHalfZ);
+ if (tryMoveBox(dragBox, newX, dragBox.mesh.position.y, newZ)) {
+ updateBoxPosition(dragBox);
+ updateXYZPanel(dragBox);
+ }
+ }
+ mouseDownPos = { x: e.clientX, y: e.clientY };
+ return;
+ }
+
+ // Hover detection
+ const boxMeshes = placedBoxes.map(b => b.mesh);
+ const hits = raycaster.intersectObjects(boxMeshes, true);
+ function findHoverBox(mesh) {
+ if (!mesh) return null;
+ for (const b of placedBoxes) {
+ if (b.mesh === mesh) return b;
+ }
+ if (mesh.parent) return findHoverBox(mesh.parent);
+ return null;
+ }
+ const newHover = hits.length > 0 ? findHoverBox(hits[0].object) : null;
+ if (newHover !== hoveredBox) {
+ if (hoveredBox && hoveredBox !== selectedBox) unhighlightBox(hoveredBox);
+ hoveredBox = newHover;
+ if (hoveredBox && hoveredBox !== selectedBox) highlightBox(hoveredBox, false);
+ updateCursor();
+ }
+ updateTooltip(e);
+}
+
+function onMouseUp(e) {
+ if (isDraggingBox && dragBox) {
+ let snapX = Math.round(dragBox.mesh.position.x * SCALE / 10) * 10 / SCALE;
+ let snapY = Math.round((dragBox.mesh.position.y - dragBox.h/SCALE/2) / SCALE * 10) * 10 / SCALE + dragBox.h/SCALE/2;
+ let snapZ = Math.round(dragBox.mesh.position.z * SCALE / 10) * 10 / SCALE;
+ if (tryMoveBox(dragBox, snapX, snapY, snapZ)) {
+ updateBoxPosition(dragBox);
+ updateXYZPanel(dragBox);
+ }
+ highlightBox(dragBox, false);
+ }
+ controls.enabled = true;
+ isDraggingBox = false;
+ dragBox = null;
+}
+
+function onWheel(e) {
+ e.preventDefault();
+ if (selectedBox) {
+ const delta = e.deltaY > 0 ? -20 : 20;
+ changeBoxHeight(selectedBox, delta);
+ } else {
+ if (e.deltaY < 0) camera.position.multiplyScalar(0.9);
+ else camera.position.multiplyScalar(1.1);
+ }
+}
+
+function onViewerDblClick(e) {
+ if (e.button !== 0) return;
+ const rect = renderer.domElement.getBoundingClientRect();
+ mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+ mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+ raycaster.setFromCamera(mouse, camera);
+ const boxMeshes = placedBoxes.map(b => b.mesh);
+ const hits = raycaster.intersectObjects(boxMeshes, true);
+ if (hits.length > 0) {
+ function findBox(mesh) {
+ if (!mesh) return null;
+ for (const b of placedBoxes) if (b.mesh === mesh) return b;
+ if (mesh.parent) return findBox(mesh.parent);
+ return null;
+ }
+ const box = findBox(hits[0].object);
+ if (box && confirm(`移除箱体 #${box.id}?`)) removeBox(box.id);
+ }
+}
+
+// ===================== TOUCH EVENTS =====================
+let touchDragBox = null;
+let touchStartPos = null;
+
+function onTouchStart(e) {
+ if (e.touches.length === 1) {
+ const touch = e.touches[0];
+ touchStartPos = { x: touch.clientX, y: touch.clientY };
+ const rect = renderer.domElement.getBoundingClientRect();
+ mouse.x = ((touch.clientX - rect.left) / rect.width) * 2 - 1;
+ mouse.y = -((touch.clientY - rect.top) / rect.height) * 2 + 1;
+ raycaster.setFromCamera(mouse, camera);
+ const boxMeshes = placedBoxes.map(b => b.mesh);
+ const hits = raycaster.intersectObjects(boxMeshes, true);
+ function findBox(mesh) {
+ if (!mesh) return null;
+ for (const b of placedBoxes) if (b.mesh === mesh) return b;
+ if (mesh.parent) return findBox(mesh.parent);
+ return null;
+ }
+ if (hits.length > 0) {
+ const box = findBox(hits[0].object);
+ if (box) {
+ e.preventDefault();
+ touchDragBox = box;
+ controls.enabled = false;
+ selectBox(box);
+ }
+ }
+ }
+}
+
+function onTouchMove(e) {
+ if (touchDragBox && e.touches.length === 1) {
+ e.preventDefault();
+ const touch = e.touches[0];
+ const rect = renderer.domElement.getBoundingClientRect();
+ mouse.x = ((touch.clientX - rect.left) / rect.width) * 2 - 1;
+ mouse.y = -((touch.clientY - rect.top) / rect.height) * 2 + 1;
+ raycaster.setFromCamera(mouse, camera);
+ const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -touchDragBox.mesh.position.y);
+ const intersectPt = new THREE.Vector3();
+ raycaster.ray.intersectPlane(plane, intersectPt);
+ const c = CONTAINERS[containerIdx];
+ const halfW = c.iW / SCALE / 2;
+ const halfL = c.iL / SCALE / 2;
+ const boxHalfX = touchDragBox.w / SCALE / 2;
+ const boxHalfZ = touchDragBox.l / SCALE / 2;
+ let newX = THREE.MathUtils.clamp(intersectPt.x, -halfW + boxHalfX, halfW - boxHalfX);
+ let newZ = THREE.MathUtils.clamp(intersectPt.z, -halfL + boxHalfZ, halfL - boxHalfZ);
+ if (tryMoveBox(touchDragBox, newX, touchDragBox.mesh.position.y, newZ)) {
+ updateBoxPosition(touchDragBox);
+ updateXYZPanel(touchDragBox);
+ }
+ }
+}
+
+function onTouchEnd(e) {
+ if (touchDragBox) {
+ let snapX = Math.round(touchDragBox.mesh.position.x * SCALE / 10) * 10 / SCALE;
+ let snapY = Math.round((touchDragBox.mesh.position.y - touchDragBox.h/SCALE/2) / SCALE * 10) * 10 / SCALE + touchDragBox.h/SCALE/2;
+ let snapZ = Math.round(touchDragBox.mesh.position.z * SCALE / 10) * 10 / SCALE;
+ tryMoveBox(touchDragBox, snapX, snapY, snapZ);
+ updateBoxPosition(touchDragBox);
+ }
+ controls.enabled = true;
+ touchDragBox = null;
+}
+// ===================== INPUT HANDLING =====================
+function quickAdd() {
+ const l = parseInt(document.getElementById('quick-l').value) || 600;
+ const w = parseInt(document.getElementById('quick-w').value) || 400;
+ const h = parseInt(document.getElementById('quick-h').value) || 400;
+ const wt = parseFloat(document.getElementById('quick-wt').value) || 10;
+ const qty = parseInt(document.getElementById('quick-qty').value) || 1;
+ const color = document.getElementById('quick-color').value;
+
+ let successCount = 0;
+ let failCount = 0;
+
+ for (let i = 0; i < qty; i++) {
+ const box = { id: ++boxIdCounter, l, w, h, wt, color };
+ const pos = findBestPosition(box);
+ if (pos) {
+ box.x = pos.x;
+ box.z = pos.z;
+ box.y = pos.y;
+ box.mesh = createBoxMesh(box);
+ scene.add(box.mesh);
+ placedBoxes.push(box);
+ successCount++;
+ } else {
+ pendingBoxes.push(box);
+ failCount++;
+ }
+ }
+
+ renderPendingList();
+ updateAllStats();
+ document.getElementById('empty-hint').style.display = 'none';
+
+ if (failCount === 0) showToast(`✅ 已直接装箱 ${successCount} 个`, 'success');
+ else if (successCount === 0) showToast(`⚠ 集装箱已满`, 'warning');
+ else showToast(`✅ 装箱 ${successCount} 个，${failCount} 个待装`, 'info');
+}
+
+function quickAddAndLoad() {
+ const l = parseInt(document.getElementById('quick-l').value) || 600;
+ const w = parseInt(document.getElementById('quick-w').value) || 400;
+ const h = parseInt(document.getElementById('quick-h').value) || 400;
+ const wt = parseFloat(document.getElementById('quick-wt').value) || 10;
+ const qty = parseInt(document.getElementById('quick-qty').value) || 1;
+ const color = document.getElementById('quick-color').value;
+
+ let successCount = 0;
+ let failCount = 0;
+
+ for (let i = 0; i < qty; i++) {
+ const box = { id: ++boxIdCounter, l, w, h, wt, color };
+ const pos = findBestPosition(box);
+ if (pos) {
+ box.x = pos.x;
+ box.z = pos.z;
+ box.y = pos.y;
+ box.mesh = createBoxMesh(box);
+ scene.add(box.mesh);
+ placedBoxes.push(box);
+ successCount++;
+ } else {
+ pendingBoxes.push(box);
+ failCount++;
+ }
+ }
+
+ renderPendingList();
+ updateAllStats();
+ document.getElementById('empty-hint').style.display = 'none';
+
+ if (failCount === 0) showToast(`✅ 已直接装箱 ${successCount} 个`, 'success');
+ else if (successCount === 0) showToast(`⚠ 集装箱已满`, 'warning');
+ else showToast(`✅ 装箱 ${successCount} 个，${failCount} 个待装`, 'info');
+}
+
+// ===================== UI RENDERING =====================
+function renderPendingList() {
+ const el = document.getElementById('pending-list');
+ const hint = document.getElementById('empty-hint');
+ document.getElementById('pending-count').textContent = pendingBoxes.length;
+ document.getElementById('h-pending').textContent = pendingBoxes.length;
+
+ if (pendingBoxes.length === 0) {
+ el.innerHTML = '';
+ el.appendChild(hint);
+ hint.style.display = 'block';
+ return;
+ }
+
+ hint.style.display = 'none';
+ el.innerHTML = pendingBoxes.map((b, i) => `
+ <div class="pending-item" draggable="true" data-idx="${i}">
+ <span class="color-dot" style="background:${b.color}"></span>
+ ${b.l}×${b.w}×${b.h}mm · ${b.wt}kg
+ <div class="dim">#${b.id}</div>
+ </div>
+ `).join('');
+
+ el.querySelectorAll('.pending-item').forEach(item => {
+ item.addEventListener('dragstart', onPendingDragStart);
+ item.addEventListener('click', () => {
+ const idx = parseInt(item.dataset.idx);
+ const box = pendingBoxes[idx];
+ const pos = findBestPosition(box);
+ if (pos) {
+ box.x = pos.x;
+ box.z = pos.z;
+ box.y = pos.y;
+ box.mesh = createBoxMesh(box);
+ scene.add(box.mesh);
+ placedBoxes.push(box);
+ pendingBoxes.splice(idx, 1);
+ renderPendingList();
+ updateAllStats();
+ showToast('✅ 已装箱', 'success');
+ } else {
+ showToast('⚠ 空间不足', 'warning');
+ }
+ });
+ });
+}
+
+let pendingDragIdx = -1;
+function onPendingDragStart(e) {
+ pendingDragIdx = parseInt(e.target.dataset.idx);
+}
+
+// ===================== CONTAINER SELECTION =====================
+function renderCtypeList() {
+ const el = document.getElementById('ctype-list');
+ el.className = 'ctype-list';
+ el.innerHTML = CONTAINERS.map((c, i) => `
+ <button class="ctype-btn ${i === containerIdx ? 'active' : ''}"
+ id="ctype-${c.id}" onclick="selectContainer('${c.id}')">
+ <div class="ctype-name">${c.short}</div>
+ <div class="ctype-spec">${c.iL}×${c.iW}×${c.iH}mm · ${c.maxWt}kg</div>
+ </button>
+ `).join('');
+}
+
+function selectContainer(id) {
+ if (!scene) return;
+ placedBoxes.forEach(b => scene.remove(b.mesh));
+ placedBoxes = [];
+ pendingBoxes = [];
+ selectedBox = null;
+ containerIdx = CONTAINERS.findIndex(c => c.id === id);
+ buildContainer(CONTAINERS[containerIdx]);
+ updateAllStats();
+ renderPendingList();
+ document.querySelectorAll('.ctype-btn').forEach(b => b.classList.remove('active'));
+ const btn = document.getElementById('ctype-' + id);
+ if (btn) btn.classList.add('active');
+}
+
+// ===================== STATS & UTILITY =====================
+function updateAllStats() {
+ const c = CONTAINERS[containerIdx];
+ const placedVol = placedBoxes.reduce((s, b) => s + b.l * b.w * b.h, 0);
+ const placedWt = placedBoxes.reduce((s, b) => s + b.wt, 0);
+ document.getElementById('stat-placed').textContent = placedBoxes.length;
+ document.getElementById('stat-pending').textContent = pendingBoxes.length;
+ document.getElementById('stat-vol').textContent = (placedVol / 1e9).toFixed(2) + ' m³';
+ document.getElementById('stat-wt').textContent = placedWt.toFixed(1) + ' kg';
+ document.getElementById('stat-util').textContent = (placedVol / (c.iL * c.iW * c.iH) * 100).toFixed(1) + '%';
+ document.getElementById('h-placed').textContent = placedBoxes.length;
+ document.getElementById('h-pending').textContent = pendingBoxes.length;
+ document.getElementById('h-vol').textContent = (placedVol / 1e9).toFixed(2);
+ document.getElementById('h-wt').textContent = Math.round(placedWt);
+}
+
+function showToast(msg, type = 'success') {
+ const t = document.getElementById('toast');
+ t.textContent = msg;
+ t.className = `toast ${type} show`;
+ setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+function clearAll() {
+ if (!confirm('确定清空所有数据？')) return;
+ placedBoxes.forEach(b => scene.remove(b.mesh));
+ placedBoxes = [];
+ pendingBoxes = [];
+ selectedBox = null;
+ renderPendingList();
+ updateAllStats();
+ showToast('已清空', 'success');
+}
+
+function exportData() {
+ const c = CONTAINERS[containerIdx];
+ const placedVol = placedBoxes.reduce((s, b) => s + b.l * b.w * b.h, 0);
+ const placedWt = placedBoxes.reduce((s, b) => s + b.wt, 0);
+ let text = `=== 集装箱3D装箱报告 ===\n`;
+ text += `集装箱: ${c.name}\n内尺寸: ${c.iL}×${c.iW}×${c.iH}mm\n最大载重: ${c.maxWt}kg\n`;
+ text += `已装载: ${placedBoxes.length}箱\n装载体积: ${(placedVol/1e9).toFixed(3)}m³\n`;
+ text += `装载重量: ${placedWt.toFixed(1)}kg\n利用率: ${(placedVol/(c.iL*c.iW*c.iH)*100).toFixed(1)}%\n\n`;
+ text += `明细:\n`;
+ placedBoxes.forEach((b, i) => {
+ const botY = (b.mesh.position.y * SCALE - b.h/2).toFixed(0);
+ const topY = (b.mesh.position.y * SCALE + b.h/2).toFixed(0);
+ const displayX = b.x + c.iW / 2;
+ const displayZ = -b.z + c.iL / 2;
+ text += `${i+1}. ${b.l}×${b.w}×${b.h}mm | ${b.wt}kg | 位置:(${displayX.toFixed(0)},${displayZ.toFixed(0)}) | Y:${botY}-${topY}mm\n`;
+ });
+ const blob = new Blob([text], { type: 'text/plain' });
+ const a = document.createElement('a');
+ a.href = URL.createObjectURL(blob);
+ a.download = `container3d-${Date.now()}.txt`;
+ a.click();
+ showToast('已导出', 'success');
+}
+
+// ===================== TOOLTIP =====================
+function updateTooltip(e) {
+ const tip = document.getElementById('tooltip');
+ if (!hoveredBox) { tip.classList.remove('show'); return; }
+ const c = CONTAINERS[containerIdx];
+ tip.innerHTML = `<div class="tip-title">#${hoveredBox.id} - ${hoveredBox.l}×${hoveredBox.w}×${hoveredBox.h}mm</div>` +
+ `<div>重量: ${hoveredBox.wt}kg</div>` +
+ `<div>X: ${(hoveredBox.x + c.iW/2).toFixed(0)}</div>` +
+ `<div>Y: ${(hoveredBox.y + hoveredBox.h/2).toFixed(0)}</div>` +
+ `<div>Z: ${(-hoveredBox.z + c.iL/2).toFixed(0)}</div>`;
+ tip.style.left = (e.clientX + 15) + 'px';
+ tip.style.top = (e.clientY - 10) + 'px';
+ tip.classList.add('show');
+}
+
+// ===================== RESIZE =====================
+function onResize() {
+ const viewer = document.getElementById('viewer');
+ if (!viewer || !camera || !renderer) return;
+ camera.aspect = viewer.clientWidth / viewer.clientHeight;
+ camera.updateProjectionMatrix();
+ renderer.setSize(viewer.clientWidth, viewer.clientHeight);
+}
+
+// ===================== KEYBOARD SHORTCUTS =====================
+function onKeyDown(e) {
+ if (e.target.tagName === 'INPUT') return;
+ if (e.key === 'Shift') { isShiftHeld = true; updateCursor(); }
+
+ if (selectedBox && document.activeElement.tagName === 'BODY') {
+ const step = e.shiftKey ? -50 / SCALE : 50 / SCALE;
+ if (e.key === 'x' || e.key === 'X') {
+ if (tryMoveBox(selectedBox, selectedBox.mesh.position.x + step, selectedBox.mesh.position.y, selectedBox.mesh.position.z)) {
+ updateBoxPosition(selectedBox); updateXYZPanel(selectedBox);
+ }
+ } else if (e.key === 'z' || e.key === 'Z') {
+ if (tryMoveBox(selectedBox, selectedBox.mesh.position.x, selectedBox.mesh.position.y, selectedBox.mesh.position.z + step)) {
+ updateBoxPosition(selectedBox); updateXYZPanel(selectedBox);
+ }
+ } else if (e.key === 'y' || e.key === 'Y') {
+ const delta = e.shiftKey ? -20 / SCALE : 20 / SCALE;
+ const newY = Math.max(selectedBox.h / SCALE / 2, Math.min(selectedBox.mesh.position.y + delta, CONTAINERS[containerIdx].iH / SCALE - selectedBox.h / SCALE / 2));
+ if (tryMoveBox(selectedBox, selectedBox.mesh.position.x, newY, selectedBox.mesh.position.z)) {
+ updateBoxPosition(selectedBox); updateXYZPanel(selectedBox);
+ }
+ } else if (e.key === 'r' || e.key === 'R') {
+ resetX(); resetY(); resetZ();
+ } else if (e.key === '0') {
+ const newY = selectedBox.h / SCALE / 2;
+ tryMoveBox(selectedBox, selectedBox.mesh.position.x, newY, selectedBox.mesh.position.z);
+ updateBoxPosition(selectedBox); updateXYZPanel(selectedBox);
+ } else if (e.key === 'Delete' || e.key === 'Backspace') {
+ if (confirm(`移除箱体 #${selectedBox.id}?`)) removeBox(selectedBox.id);
+ }
+ }
+}
+
+function onKeyUp(e) {
+ if (e.key === 'Shift') { isShiftHeld = false; updateCursor(); }
+}
+
+function updateCursor() {
+ const canvas = document.getElementById('three-canvas');
+ if (isShiftHeld && (hoveredBox || selectedBox)) canvas.style.cursor = 'grab';
+ else canvas.style.cursor = '';
+}
+
+// ===================== VIEWER DROP =====================
+function onViewerDragOver(e) { e.preventDefault(); }
+function onViewerDrop(e) { e.preventDefault(); }
 
 // ===================== INIT =====================
 function init() {
-  renderCtypeList();
-  renderColorPicker();
-  renderPresets();
-  renderPendingList();
-  initThree();
+ try { renderCtypeList(); } catch (e) { console.error('renderCtypeList error:', e); }
+ try { renderColorPicker(); } catch (e) { console.error('renderColorPicker error:', e); }
+ try { renderPresets(); } catch (e) { console.error('renderPresets error:', e); }
+ try { renderPendingList(); } catch (e) { console.error('renderPendingList error:', e); }
+ try { initThree(); } catch (e) { console.error('initThree error:', e); }
 
-  const viewer = document.getElementById('viewer');
-  viewer.addEventListener('dragover', onViewerDragOver);
-  viewer.addEventListener('drop', onViewerDrop);
-  viewer.addEventListener('dragleave', e => {
-    if (!viewer.contains(e.relatedTarget)) {
-      // nothing special
-    }
-  });
+ const viewer = document.getElementById('viewer');
+ if (viewer) {
+ viewer.addEventListener('dragover', onViewerDragOver);
+ viewer.addEventListener('drop', onViewerDrop);
+ }
 }
 
-// 确保DOM加载完成后再执行
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', init);
+ document.addEventListener('DOMContentLoaded', init);
 } else {
-  init();
+ init();
 }
-</script>
-</body>
-</html>
+
+// ===================== PRESETS & COLOR PICKER =====================
+function renderPresets() {
+ const el = document.getElementById('presets');
+ if (!el) return;
+ el.innerHTML = PRESETS.map((p, i) => `
+ <button class="preset-btn" onclick="app
+...(truncated)...
