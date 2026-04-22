@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>集装箱3D装载游戏 | Container 3D Packer v19</title>
+<title>集装箱3D装载游戏 | Container 3D Packer v20</title>
 <style>
   :root {
     --bg: #0a0e14;
@@ -511,9 +511,9 @@ function initThree() {
   controls.minDistance = 5;
   controls.maxDistance = 500;
   controls.mouseButtons = {
-    LEFT: null,            // our onMouseDown handles box drag
-    MIDDLE: THREE.MOUSE.DOLLY,
-    RIGHT: THREE.MOUSE.ROTATE
+    LEFT: null,            // our onMouseDown handles box select + drag
+    MIDDLE: THREE.MOUSE.ROTATE,
+    RIGHT: null            // right-click handled by onMouseDown for camera rotation
   };
   controls.touches = { ONE: THREE.TOUCH.PAN, TWO: THREE.TOUCH.DOLLY_ROTATE };
 
@@ -706,60 +706,74 @@ function updateCursor() {
 let pendingDragIdx = -1;
 let dragBoxStartY = 0;
 
+// Camera rotation state
+let isRotatingCamera = false;
+let rotateStartPos = { x: 0, y: 0 };
+let rotateStartTheta = 0;
+let rotateStartPhi = 0;
+
 function onMouseDown(e) {
-  console.log('onMouseDown', e.button, 'placedBoxes:', placedBoxes.length);
-  if (e.button !== 0) return;
-  mouseDownPos = { x: e.clientX, y: e.clientY };
-  hasMoved = false;
+  // LEFT = select box / drag box / orbit camera on empty
+  // RIGHT = orbit camera (any context)
+  if (e.button === 0) {
+    mouseDownPos = { x: e.clientX, y: e.clientY };
+    hasMoved = false;
 
-  const rect = renderer.domElement.getBoundingClientRect();
-  mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-  mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-  raycaster.setFromCamera(mouse, camera);
+    const rect = renderer.domElement.getBoundingClientRect();
+    mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+    mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+    raycaster.setFromCamera(mouse, camera);
 
-  const boxMeshes = placedBoxes.map(b => b.mesh);
-  const hits = raycaster.intersectObjects(boxMeshes, true);
-  console.log('onMouseDown hits:', hits.length, 'boxMeshes:', boxMeshes.length);
+    const boxMeshes = placedBoxes.map(b => b.mesh);
+    const hits = raycaster.intersectObjects(boxMeshes, true);
 
-  if (hits.length > 0) {
-    const hitMesh = hits[0].object;
-    // 递归查找 hitMesh 属于哪个 box 的 mesh group
-    function findParentBox(mesh) {
-      if (!mesh) return null;
-      for (const b of placedBoxes) {
-        if (b.mesh === mesh) return b;
+    if (hits.length > 0) {
+      const hitMesh = hits[0].object;
+      function findParentBox(mesh) {
+        if (!mesh) return null;
+        for (const b of placedBoxes) {
+          if (b.mesh === mesh) return b;
+        }
+        if (mesh.parent) return findParentBox(mesh.parent);
+        return null;
       }
-      // 向上查找父级
-      if (mesh.parent) return findParentBox(mesh.parent);
-      return null;
-    }
-    const box = findParentBox(hitMesh);
-    if (box) {
-      e.stopPropagation();
-      controls.enabled = false;
-      dragBox = box;
-      dragBoxStartY = box.mesh.position.y;
-      isDraggingBox = true;
-      selectBox(box);
+      const box = findParentBox(hitMesh);
+      if (box) {
+        e.stopPropagation();
+        controls.enabled = false;
+        dragBox = box;
+        dragBoxStartY = box.mesh.position.y;
+        isDraggingBox = true;
+        selectBox(box);
 
-      const boxWorldPos = new THREE.Vector3();
-      box.mesh.getWorldPosition(boxWorldPos);
-      const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -boxWorldPos.y);
-      const intersectPt = new THREE.Vector3();
-      raycaster.ray.intersectPlane(plane, intersectPt);
-      dragOffsetXZ.set(
-        intersectPt.x - boxWorldPos.x,
-        0,
-        intersectPt.z - boxWorldPos.z
-      );
-      highlightBox(box, true);
-      return;
+        const boxWorldPos = new THREE.Vector3();
+        box.mesh.getWorldPosition(boxWorldPos);
+        const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -boxWorldPos.y);
+        const intersectPt = new THREE.Vector3();
+        raycaster.ray.intersectPlane(plane, intersectPt);
+        dragOffsetXZ.set(
+          intersectPt.x - boxWorldPos.x,
+          0,
+          intersectPt.z - boxWorldPos.z
+        );
+        highlightBox(box, true);
+        return;
+      }
     }
+
+    // Clicked empty space: enable camera orbit mode
+    controls.enabled = true;
+    deselectBox();
+
+  } else if (e.button === 2) {
+    // Right-click: orbit camera
+    e.preventDefault();
+    controls.enabled = false;
+    isRotatingCamera = true;
+    rotateStartPos = { x: e.clientX, y: e.clientY };
+    rotateStartTheta = camera.rotation.y;
+    rotateStartPhi = camera.rotation.x;
   }
-
-  // Clicked empty space: let orbit controls handle rotation
-  controls.enabled = true;
-  deselectBox();
 }
 
 function onMouseMove(e) {
@@ -796,6 +810,15 @@ function onMouseMove(e) {
     canvas.style.cursor = hoveredBox ? 'grab' : '';
     updateTooltip(e, newHover);
     heightScrollBox = newHover;
+
+    // Camera rotation via right-click drag
+    if (isRotatingCamera) {
+      const dx = e.clientX - rotateStartPos.x;
+      const dy = e.clientY - rotateStartPos.y;
+      const speed = 0.005;
+      camera.rotation.y = rotateStartTheta - dx * speed;
+      camera.rotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, rotateStartPhi - dy * speed));
+    }
     return;
   }
 
@@ -860,6 +883,7 @@ function onMouseUp(e) {
 
   isDraggingBox = false;
   dragBox = null;
+  isRotatingCamera = false;
   controls.enabled = true;
 }
 
