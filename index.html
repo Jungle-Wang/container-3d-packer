@@ -6,15 +6,19 @@
 <title>集装箱3D装载游戏 | Container 3D Packer v24</title>
 <script>
 window.onerror = function(msg, url, line, col, err) {
-  console.error('=== GLOBAL ERROR ===');
-  console.error('Message:', msg);
-  console.error('URL:', url);
-  console.error('Line:', line);
-  console.error('Column:', col);
-  console.error('Error object:', err);
-  alert('Error at line ' + line + ': ' + msg);
+  var stack = err && err.stack ? err.stack : 'No stack available';
+  alert('ERROR DETAILS:\n' +
+    'Message: ' + msg + '\n' +
+    'Line: ' + line + '\n' +
+    'URL: ' + url + '\n' +
+    'Stack:\n' + stack);
+  console.error('FULL ERROR:', err);
   return false;
 };
+window.addEventListener('unhandledrejection', function(e) {
+  alert('Promise Error: ' + (e.reason ? e.reason.message || e.reason : 'unknown'));
+  console.error('Promise rejection:', e.reason);
+});
 </script>
 <style>
   :root {
