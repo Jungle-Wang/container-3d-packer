@@ -3,7 +3,19 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>集装箱3D装载游戏 | Container 3D Packer v20</title>
+<title>集装箱3D装载游戏 | Container 3D Packer v24</title>
+<script>
+window.onerror = function(msg, url, line, col, err) {
+  console.error('=== GLOBAL ERROR ===');
+  console.error('Message:', msg);
+  console.error('URL:', url);
+  console.error('Line:', line);
+  console.error('Column:', col);
+  console.error('Error object:', err);
+  alert('Error at line ' + line + ': ' + msg);
+  return false;
+};
+</script>
 <style>
   :root {
     --bg: #0a0e14;
@@ -1544,12 +1556,12 @@ function buildContainer(c) {
 
 // ===================== BOX MANAGEMENT =====================
 function addBox() {
-  const l = parseFloat(document.getElementById('quick-l').value) || 0;
-  const w = parseFloat(document.getElementById('quick-w').value) || 0;
-  const h = parseFloat(document.getElementById('quick-h').value) || 0;
-  const wt = parseFloat(document.getElementById('quick-wt').value) || 0;
+  const l = parseFloat(document.getElementById('quick-l')?.value) || 0;
+  const w = parseFloat(document.getElementById('quick-w')?.value) || 0;
+  const h = parseFloat(document.getElementById('quick-h')?.value) || 0;
+  const wt = parseFloat(document.getElementById('quick-wt')?.value) || 0;
 
-  if (!l || !w || !h || !wt) { showToast('请填写所有参数', 'error'); return; }
+  if (!l || !w || !h) { showToast('请填写尺寸', 'error'); return; }
   if (l < 50 || w < 50 || h < 50) { showToast('尺寸最小50mm', 'error'); return; }
 
   const c = CONTAINERS[containerIdx];
