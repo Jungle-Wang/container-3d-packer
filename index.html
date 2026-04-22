@@ -715,6 +715,7 @@ let rotateStartPhi = 0;
 function onMouseDown(e) {
   // LEFT = select box / drag box / orbit camera on empty
   // RIGHT = orbit camera (any context)
+  console.log('onMouseDown button:', e.button);
   if (e.button === 0) {
     mouseDownPos = { x: e.clientX, y: e.clientY };
     hasMoved = false;
@@ -725,7 +726,9 @@ function onMouseDown(e) {
     raycaster.setFromCamera(mouse, camera);
 
     const boxMeshes = placedBoxes.map(b => b.mesh);
+    console.log('boxMeshes count:', boxMeshes.length);
     const hits = raycaster.intersectObjects(boxMeshes, true);
+    console.log('hits count:', hits.length);
 
     if (hits.length > 0) {
       const hitMesh = hits[0].object;
@@ -824,6 +827,7 @@ function onMouseMove(e) {
 
   // Dragging box
   if (isDraggingBox && dragBox) {
+    console.log('Dragging:', dragBox.name);
     if (isShiftHeld) {
       // Shift+drag: move Y (height) based on vertical mouse movement
       const deltaY = (mouseDownPos.y - e.clientY) / SCALE * 2;
