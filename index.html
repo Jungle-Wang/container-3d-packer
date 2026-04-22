@@ -715,10 +715,16 @@ let rotateStartPhi = 0;
 function onMouseDown(e) {
   // LEFT = select box / drag box / orbit camera on empty
   // RIGHT = orbit camera (any context)
-  console.log('onMouseDown button:', e.button);
+  console.log('onMouseDown button:', e.button, 'placedBoxes:', placedBoxes.length);
+  try {
   if (e.button === 0) {
     mouseDownPos = { x: e.clientX, y: e.clientY };
     hasMoved = false;
+
+    if (!renderer || !camera || !raycaster) {
+      console.log('renderer/camera/raycaster not ready');
+      return;
+    }
 
     const rect = renderer.domElement.getBoundingClientRect();
     mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
@@ -741,6 +747,7 @@ function onMouseDown(e) {
         return null;
       }
       const box = findParentBox(hitMesh);
+      console.log('findParentBox result:', box ? box.name : 'null');
       if (box) {
         e.stopPropagation();
         controls.enabled = false;
@@ -753,7 +760,10 @@ function onMouseDown(e) {
         box.mesh.getWorldPosition(boxWorldPos);
         const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -boxWorldPos.y);
         const intersectPt = new THREE.Vector3();
-        raycaster.ray.intersectPlane(plane, intersectPt);
+        if (!raycaster.ray.intersectPlane(plane, intersectPt)) {
+          console.log('No plane intersection');
+          return;
+        }
         dragOffsetXZ.set(
           intersectPt.x - boxWorldPos.x,
           0,
@@ -774,9 +784,10 @@ function onMouseDown(e) {
     controls.enabled = false;
     isRotatingCamera = true;
     rotateStartPos = { x: e.clientX, y: e.clientY };
-    rotateStartTheta = camera.rotation.y;
-    rotateStartPhi = camera.rotation.x;
+    rotateStartTheta = camera ? camera.rotation.y : 0;
+    rotateStartPhi = camera ? camera.rotation.x : 0;
   }
+  } catch(err) { console.error('onMouseDown error:', err); }
 }
 
 function onMouseMove(e) {
@@ -815,7 +826,7 @@ function onMouseMove(e) {
     heightScrollBox = newHover;
 
     // Camera rotation via right-click drag
-    if (isRotatingCamera) {
+    if (isRotatingCamera && camera && camera.rotation) {
       const dx = e.clientX - rotateStartPos.x;
       const dy = e.clientY - rotateStartPos.y;
       const speed = 0.005;
@@ -828,6 +839,7 @@ function onMouseMove(e) {
   // Dragging box
   if (isDraggingBox && dragBox) {
     console.log('Dragging:', dragBox.name);
+    if (!dragBox.mesh) { console.log('dragBox.mesh missing'); return; }
     if (isShiftHeld) {
       // Shift+drag: move Y (height) based on vertical mouse movement
       const deltaY = (mouseDownPos.y - e.clientY) / SCALE * 2;
@@ -843,12 +855,17 @@ function onMouseMove(e) {
       // Normal drag: XZ plane
       const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -dragBox.mesh.position.y);
       const intersectPt = new THREE.Vector3();
-      raycaster.ray.intersectPlane(plane, intersectPt);
+      if (!raycaster.ray.intersectPlane(plane, intersectPt)) {
+        console.log('No plane intersection in drag');
+        return;
+      }
 
-      const halfW = CONTAINERS[containerIdx].iW / SCALE / 2;
-      const halfL = CONTAINERS[containerIdx].iL / SCALE / 2;
-      const boxHalfX = dragBox.w / SCALE / 2;
-      const boxHalfZ = dragBox.l / SCALE / 2;
+      const c = CONTAINERS[containerIdx];
+      if (!c) { console.log('CONTAINERS[containerIdx] undefined'); return; }
+      const halfW = c.iW / SCALE / 2;
+      const halfL = c.iL / SCALE / 2;
+      const boxHalfX = (dragBox.w || 0) / SCALE / 2;
+      const boxHalfZ = (dragBox.l || 0) / SCALE / 2;
 
       let newX = intersectPt.x - dragOffsetXZ.x;
       let newZ = intersectPt.z - dragOffsetXZ.z;
