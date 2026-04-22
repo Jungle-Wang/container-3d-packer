@@ -1250,13 +1250,13 @@ function selectBox(box) {
   highlightBox(box, true);
   updateTooltip(null, box);
   updateXYZPanel(box);
-  document.getElementById('xyz-panel').classList.add('show');
+  document.getElementById('xyz-panel')?.classList.add('show');
 }
 
 function deselectBox() {
   if (selectedBox) { unhighlightBox(selectedBox); selectedBox = null; }
   hideTooltip();
-  document.getElementById('xyz-panel').classList.remove('show');
+  document.getElementById('xyz-panel')?.classList.remove('show');
 }
 
 function updateXYZPanel(box) {
@@ -1264,9 +1264,12 @@ function updateXYZPanel(box) {
   const posX = (box.mesh.position.x * SCALE).toFixed(0);
   const posZ = (box.mesh.position.z * SCALE).toFixed(0);
   const bottomY = (box.mesh.position.y * SCALE - box.h / 2).toFixed(0);
-  document.getElementById('xyz-x').textContent = posX + ' mm';
-  document.getElementById('xyz-y').textContent = bottomY + ' mm';
-  document.getElementById('xyz-z').textContent = posZ + ' mm';
+  const elX = document.getElementById('xyz-x');
+  const elY = document.getElementById('xyz-y');
+  const elZ = document.getElementById('xyz-z');
+  if (elX) elX.textContent = posX + ' mm';
+  if (elY) elY.textContent = bottomY + ' mm';
+  if (elZ) elZ.textContent = posZ + ' mm';
 }
 
 function nudgeBox(axis, delta) {
