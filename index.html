@@ -1544,10 +1544,10 @@ function buildContainer(c) {
 
 // ===================== BOX MANAGEMENT =====================
 function addBox() {
-  const l = parseFloat(document.getElementById('inp-l').value);
-  const w = parseFloat(document.getElementById('inp-w').value);
-  const h = parseFloat(document.getElementById('inp-h').value);
-  const wt = parseFloat(document.getElementById('inp-wt').value);
+  const l = parseFloat(document.getElementById('quick-l').value) || 0;
+  const w = parseFloat(document.getElementById('quick-w').value) || 0;
+  const h = parseFloat(document.getElementById('quick-h').value) || 0;
+  const wt = parseFloat(document.getElementById('quick-wt').value) || 0;
 
   if (!l || !w || !h || !wt) { showToast('请填写所有参数', 'error'); return; }
   if (l < 50 || w < 50 || h < 50) { showToast('尺寸最小50mm', 'error'); return; }
@@ -1561,19 +1561,19 @@ function addBox() {
   pendingBoxes.push({ id: ++boxIdCounter, l, w, h, wt, color: selectedColor });
   renderPendingList();
   updateAllStats();
-  ['inp-l','inp-w','inp-h','inp-wt'].forEach(id => document.getElementById(id).value = '');
+  ['quick-l','quick-w','quick-h','quick-wt'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
 }
 
 function quickAddBoxes() {
-  const l = parseFloat(document.getElementById('quick-l').value);
-  const w = parseFloat(document.getElementById('quick-w').value);
-  const h = parseFloat(document.getElementById('quick-h').value);
-  const wt = parseFloat(document.getElementById('quick-wt').value);
-  const qty = parseInt(document.getElementById('quick-qty').value) || 1;
-  const colorHex = document.getElementById('quick-color').value;
+  const l = parseFloat(document.getElementById('quick-l')?.value) || 0;
+  const w = parseFloat(document.getElementById('quick-w')?.value) || 0;
+  const h = parseFloat(document.getElementById('quick-h')?.value) || 0;
+  const wt = parseFloat(document.getElementById('quick-wt')?.value) || 0;
+  const qty = parseInt(document.getElementById('quick-qty')?.value) || 1;
+  const colorHex = document.getElementById('quick-color')?.value || COLORS[0].hex;
   const color = COLORS.find(c => c.hex === colorHex) || COLORS[0];
 
-  if (!l || !w || !h || !wt) { showToast('请填写所有参数', 'error'); return; }
+  if (!l || !w || !h) { showToast('请填写尺寸', 'error'); return; }
   if (l < 50 || w < 50 || h < 50) { showToast('尺寸最小50mm', 'error'); return; }
 
   const c = CONTAINERS[containerIdx];
@@ -1592,15 +1592,15 @@ function quickAddBoxes() {
 
 // 直接装箱：批量添加并自动放置到集装箱内
 function quickAddAndLoad() {
-  const l = parseFloat(document.getElementById('quick-l').value);
-  const w = parseFloat(document.getElementById('quick-w').value);
-  const h = parseFloat(document.getElementById('quick-h').value);
-  const wt = parseFloat(document.getElementById('quick-wt').value);
-  const qty = parseInt(document.getElementById('quick-qty').value) || 1;
-  const colorHex = document.getElementById('quick-color').value;
+  const l = parseFloat(document.getElementById('quick-l')?.value) || 0;
+  const w = parseFloat(document.getElementById('quick-w')?.value) || 0;
+  const h = parseFloat(document.getElementById('quick-h')?.value) || 0;
+  const wt = parseFloat(document.getElementById('quick-wt')?.value) || 0;
+  const qty = parseInt(document.getElementById('quick-qty')?.value) || 1;
+  const colorHex = document.getElementById('quick-color')?.value || COLORS[0].hex;
   const color = COLORS.find(c => c.hex === colorHex) || COLORS[0];
 
-  if (!l || !w || !h || !wt) { showToast('请填写所有参数', 'error'); return; }
+  if (!l || !w || !h) { showToast('请填写尺寸', 'error'); return; }
   if (l < 50 || w < 50 || h < 50) { showToast('尺寸最小50mm', 'error'); return; }
 
   const c = CONTAINERS[containerIdx];
@@ -2313,12 +2313,17 @@ function renderPresets() {
 function applyPreset(idx) {
   const p = PRESETS[idx];
   // Fill quick add area for convenience
-  document.getElementById('quick-l').value = p.l;
-  document.getElementById('quick-w').value = p.w;
-  document.getElementById('quick-h').value = p.h;
-  document.getElementById('quick-wt').value = p.wt;
-  document.getElementById('quick-qty').value = 1;
-  document.getElementById('quick-l').focus();
+  const ql = document.getElementById('quick-l');
+  if (ql) ql.value = p.l;
+  const qw = document.getElementById('quick-w');
+  if (qw) qw.value = p.w;
+  const qh = document.getElementById('quick-h');
+  if (qh) qh.value = p.h;
+  const qwt = document.getElementById('quick-wt');
+  if (qwt) qwt.value = p.wt;
+  const qq = document.getElementById('quick-qty');
+  if (qq) qq.value = 1;
+  if (ql) ql.focus();
   showToast(`✅ 已填入 ${p.label} 尺寸，可修改数量后添加`, 'success');
 }
 
